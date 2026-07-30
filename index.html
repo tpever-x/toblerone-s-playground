@@ -8,7 +8,7 @@
 </head>
 <body>
 
-  <!-- Droplet overlay (cursor effects & weather particles) -->
+  <!-- Droplet overlay (click effects & weather particles) -->
   <div id="droplet-field"></div>
   <!-- Rain container (rotated for wind) -->
   <div id="rain-container"></div>
@@ -33,9 +33,10 @@
       <div class="sidebar-section">
         <h3>Contact</h3>
         <ul class="sidebar-list">
+          <!-- PII Scrubbed. Only operational sector remains. -->
           <li><strong>Address:</strong> Izmir</li>
-          <li><strong>Phone:</strong> +905488229902</li>
-          <li><strong>E-mail:</strong> yetkinkoseoglu02@gmail.com</li>
+          <li><strong>LinkedIn:</strong> /in/your-profile</li>
+          <li><strong>GitHub:</strong> github.com/tpever-x</li>
         </ul>
       </div>
       <hr class="divider small">
@@ -135,16 +136,31 @@
           <p class="summary-text">Linux / Open Source, Semiconductors, Cars, Football</p>
         </section>
       </div>
+
+      <!-- ============================================================ -->
+      <!-- SHITPOST CONTAINMENT ZONE (CURSED PHYSICS ARENA)             -->
+      <!-- ============================================================ -->
+      <section class="section-block containment-zone">
+        <h2 class="section-heading glitched-text">⚠️ Containment Zone</h2>
+        <p class="summary-text">Warning: Local DOM gravity corrupted. Zero-friction environment detected.</p>
+        
+        <!-- Drop your shitpost gifs in here, ensure they have the 'cursed-gif' class -->
+        <div class="cursed-arena" id="cursed-arena">
+          <img src="https://media.giphy.com/media/GeimqsH0TLDt4tScGw/giphy.gif" alt="Spinning Cat" class="cursed-gif">
+          <img src="https://media.giphy.com/media/L0I1y3z0vN05y/giphy.gif" alt="Explosion" class="cursed-gif">
+        </div>
+      </section>
+
     </main>
   </div>
 
   <script>
     // ========== GLOBAL STATE ==========
     let sunXPercent = 50, sunYPercent = 20;
-    let sunElevationDeg = 45; // for rainbow, updated later
+    let sunElevationDeg = 45; 
     let currentWeatherCode = 0;
-    let windSpeed = 0; // m/s
-    let windDirection = 0; // degrees (0 = North, clockwise)
+    let windSpeed = 0; 
+    let windDirection = 0; 
     let isRaining = false;
     let isThunderstorm = false;
 
@@ -190,10 +206,9 @@
       document.documentElement.style.setProperty('--sun-x', `${sunX}%`);
     }
 
-    // ========== WEATHER ENGINE (extended) ==========
+    // ========== WEATHER ENGINE ==========
     async function fetchWeather(lat, lon) {
       try {
-        // Open-Meteo: current + hourly
         const res = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
           `&current_weather=true&hourly=precipitation,weathercode&timezone=auto&forecast_days=1`
@@ -202,22 +217,14 @@
         const data = await res.json();
         
         const current = data.current_weather;
-        windSpeed = current.windspeed; // km/h
-        windDirection = current.winddirection; // degrees (0=N, clockwise)
-        // Convert wind speed to m/s
-        windSpeed = windSpeed / 3.6;
-
+        windSpeed = current.windspeed / 3.6; 
+        windDirection = current.winddirection; 
         const weatherCode = current.weathercode;
         currentWeatherCode = weatherCode;
-        isRaining = (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82);
-        isThunderstorm = (weatherCode >= 95 && weatherCode <= 99);
 
         applyWeatherEffects(weatherCode, windSpeed, windDirection);
       } catch (err) {
         console.warn('Weather API failed. Default clear.', err);
-        currentWeatherCode = 0;
-        isRaining = false;
-        isThunderstorm = false;
         applyWeatherEffects(0, 0, 0);
       }
     }
@@ -225,284 +232,120 @@
     function applyWeatherEffects(code, windSpeed, windDirection) {
       const body = document.body;
       body.classList.remove('weather-rain', 'weather-snow', 'weather-fog', 'weather-clouds');
-      toggleFog(false);
-      stopRain();
-      stopSnow();
-      removeClouds();
-      hideRainbow();
+      stopRain(); stopSnow(); stopLightningEngine(); hideRainbow();
 
-      // Fog (45, 48)
       if (code === 45 || code === 48) {
         body.classList.add('weather-fog');
-        toggleFog(true);
+        document.getElementById('fog-overlay').classList.remove('fog-hidden');
+      } else {
+        document.getElementById('fog-overlay').classList.add('fog-hidden');
       }
 
-      // Rain
       if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || (code >= 95 && code <= 99)) {
         body.classList.add('weather-rain');
         startRain(windSpeed, windDirection);
-        // Rainbow: sun elevation > 0 and raining (and not thunder? we show anyway)
-        if (sunElevationDeg > 0 && code >= 51 && code <= 82) {
-          showRainbow();
-        }
+        if (sunElevationDeg > 0 && code >= 51 && code <= 82) showRainbow();
       }
 
-      // Snow
       if ((code >= 71 && code <= 77) || (code === 85 || code === 86)) {
         body.classList.add('weather-snow');
         startSnow(windSpeed, windDirection);
       }
 
-      // Clouds
-      if ((code >= 1 && code <= 3) || (code === 0)) {
-        body.classList.add('weather-clouds');
-        generateClouds();
-      }
-
-      // Lightning if thunderstorm
-      if (code >= 95) {
-        startLightningEngine();
-      } else {
-        stopLightningEngine();
-      }
+      if ((code >= 1 && code <= 3) || (code === 0)) body.classList.add('weather-clouds');
+      if (code >= 95) startLightningEngine();
     }
 
-    // ---- Rain (with wind tilt) ----
-    let rainInterval = null;
-    const maxRainParticles = 100;
-    const terminalVelocity = 9; // m/s
-
-    function startRain(windSpeed, windDirection) {
-      if (rainInterval) return;
-      stopSnow();
-      const container = document.getElementById('rain-container');
-      container.innerHTML = ''; // clear previous
-      
-      // Calculate tilt angle based on wind
-      const windDirRad = windDirection * Math.PI / 180;
-      // Wind vector: components in screen coords (north = -Y, east = +X)
-      const windX = windSpeed * Math.sin(windDirRad);
-      const windY = -windSpeed * Math.cos(windDirRad);
-      // The rain drop's apparent slant angle from vertical (screen)
-      const slantAngle = Math.atan2(windX, terminalVelocity) * (180 / Math.PI);
-      
-      // Apply rotation to entire rain container
-      container.style.transform = `rotate(${slantAngle}deg)`;
-      
-      // Spawn individual drops inside the container
+    // ---- Rain, Snow, Lightning & Rainbow Logic ----
+    let rainInterval = null, snowInterval = null, lightningInterval = null;
+    
+    function startRain(speed, dir) {
+      if(rainInterval) return;
+      const c = document.getElementById('rain-container'); c.innerHTML='';
+      const slant = Math.atan2(speed * Math.sin(dir * Math.PI/180), 9) * (180/Math.PI);
+      c.style.transform = `rotate(${slant}deg)`;
       rainInterval = setInterval(() => {
-        if (container.children.length >= maxRainParticles) return;
-        const drop = document.createElement('div');
-        drop.className = 'rain-drop';
-        drop.style.left = Math.random() * 120 + '%'; // wider than screen
-        drop.style.animationDuration = (0.5 + Math.random() * 0.7) + 's';
-        drop.style.animationDelay = Math.random() * 1.5 + 's';
-        container.appendChild(drop);
-        // Auto-remove
-        setTimeout(() => { if (drop.parentNode) drop.remove(); }, 2000);
+        if(c.children.length >= 100) return;
+        const d = document.createElement('div'); d.className = 'rain-drop';
+        d.style.left = Math.random() * 120 + '%';
+        d.style.animationDuration = (0.5 + Math.random()*0.7) + 's';
+        c.appendChild(d); setTimeout(()=> d.remove(), 2000);
       }, 80);
     }
-
-    function stopRain() {
-      if (rainInterval) { clearInterval(rainInterval); rainInterval = null; }
-      document.getElementById('rain-container').innerHTML = '';
-      hideRainbow();
-    }
-
-    // ---- Snow (wind drift) ----
-    let snowInterval = null;
-    const maxSnowParticles = 80;
-
-    function startSnow(windSpeed, windDirection) {
-      if (snowInterval) return;
-      stopRain();
-      const container = document.getElementById('rain-container'); // reuse same container for snow
-      container.innerHTML = '';
-      
-      const windDirRad = windDirection * Math.PI / 180;
-      const windX = windSpeed * Math.sin(windDirRad);
-      const windY = -windSpeed * Math.cos(windDirRad);
-      // Snow fall speed ~1 m/s
-      const fallSpeed = 1;
-      const slantAngle = Math.atan2(windX, fallSpeed) * (180 / Math.PI);
-      container.style.transform = `rotate(${slantAngle}deg)`;
-      
+    function stopRain() { clearInterval(rainInterval); rainInterval=null; document.getElementById('rain-container').innerHTML=''; }
+    
+    function startSnow(speed, dir) {
+      if(snowInterval) return; stopRain();
+      const c = document.getElementById('rain-container'); c.innerHTML='';
+      const slant = Math.atan2(speed * Math.sin(dir * Math.PI/180), 1) * (180/Math.PI);
+      c.style.transform = `rotate(${slant}deg)`;
       snowInterval = setInterval(() => {
-        if (container.children.length >= maxSnowParticles) return;
-        const flake = document.createElement('div');
-        flake.className = 'snow-flake';
-        flake.style.left = Math.random() * 120 + '%';
-        flake.style.animationDuration = (3 + Math.random() * 4) + 's';
-        flake.style.animationDelay = Math.random() * 2 + 's';
-        flake.style.opacity = 0.6 + Math.random() * 0.4;
-        container.appendChild(flake);
-        setTimeout(() => { if (flake.parentNode) flake.remove(); }, 8000);
+        if(c.children.length >= 80) return;
+        const s = document.createElement('div'); s.className = 'snow-flake';
+        s.style.left = Math.random() * 120 + '%';
+        s.style.animationDuration = (3 + Math.random()*4) + 's';
+        c.appendChild(s); setTimeout(()=> s.remove(), 8000);
       }, 250);
     }
-
-    function stopSnow() {
-      if (snowInterval) { clearInterval(snowInterval); snowInterval = null; }
-      document.getElementById('rain-container').innerHTML = '';
-    }
-
-    // ---- Lightning (fractal bolts) ----
-    let lightningInterval = null;
-    const canvas = document.getElementById('lightning-canvas');
-    const ctx = canvas.getContext('2d');
-    const flashOverlay = document.getElementById('flash-overlay');
-
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    function drawLightningBolt(x1, y1, x2, y2, depth, branchAngle) {
-      if (depth > 5) return;
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.strokeStyle = `rgba(255, 255, 255, ${1 - depth * 0.15})`;
-      ctx.lineWidth = 4 - depth * 0.6;
-      ctx.shadowColor = '#aaccff';
-      ctx.shadowBlur = 10;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      if (depth < 4) {
-        const midX = (x1 + x2) / 2 + (Math.random() - 0.5) * 30;
-        const midY = (y1 + y2) / 2 + (Math.random() - 0.5) * 30;
-        drawLightningBolt(x1, y1, midX, midY, depth + 1, branchAngle);
-        drawLightningBolt(midX, midY, x2, y2, depth + 1, branchAngle);
-        
-        // branch off with probability
-        if (Math.random() < 0.4) {
-          const branchX = midX + Math.cos(branchAngle + Math.random() * 0.8) * 40;
-          const branchY = midY + Math.sin(branchAngle + Math.random() * 0.8) * 40;
-          drawLightningBolt(midX, midY, branchX, branchY, depth + 2, branchAngle + 0.5);
-        }
-      }
-    }
-
-    function triggerLightning() {
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Starting point top somewhere random
-      const startX = Math.random() * canvas.width * 0.8 + canvas.width * 0.1;
-      const startY = 0;
-      // End point bottom random
-      const endX = startX + (Math.random() - 0.5) * 200;
-      const endY = canvas.height * 0.7 + Math.random() * canvas.height * 0.3;
-      
-      const angle = Math.atan2(endY - startY, endX - startX);
-      drawLightningBolt(startX, startY, endX, endY, 0, angle);
-
-      // Flash
-      flashOverlay.classList.add('flash-visible');
-      setTimeout(() => flashOverlay.classList.remove('flash-visible'), 150);
-      
-      // Fade bolt after a moment
-      setTimeout(() => ctx.clearRect(0, 0, canvas.width, canvas.height), 300);
-    }
+    function stopSnow() { clearInterval(snowInterval); snowInterval=null; document.getElementById('rain-container').innerHTML=''; }
 
     function startLightningEngine() {
-      if (lightningInterval) return;
+      const cvs = document.getElementById('lightning-canvas'); const ctx = cvs.getContext('2d');
+      cvs.width=window.innerWidth; cvs.height=window.innerHeight;
+      if(lightningInterval) return;
       lightningInterval = setInterval(() => {
-        // random strike intervals
-        if (Math.random() < 0.3) triggerLightning();
+        if(Math.random() > 0.3) return;
+        ctx.clearRect(0,0,cvs.width,cvs.height);
+        document.getElementById('flash-overlay').classList.add('flash-visible');
+        setTimeout(()=> document.getElementById('flash-overlay').classList.remove('flash-visible'), 150);
+        setTimeout(()=> ctx.clearRect(0,0,cvs.width,cvs.height), 300);
       }, 1500);
     }
+    function stopLightningEngine() { clearInterval(lightningInterval); lightningInterval=null; }
 
-    function stopLightningEngine() {
-      if (lightningInterval) { clearInterval(lightningInterval); lightningInterval = null; }
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // ---- Rainbow ----
     function showRainbow() {
-      const container = document.getElementById('rainbow-container');
-      container.classList.remove('rainbow-hidden');
-      // Position rainbow based on anti-solar point
-      const sunX_px = (sunXPercent / 100) * window.innerWidth;
-      const sunY_px = (sunYPercent / 100) * window.innerHeight;
-      const centerX = 2 * (window.innerWidth / 2) - sunX_px;
-      const centerY = 2 * (window.innerHeight / 2) - sunY_px;
-      
-      container.style.left = centerX + 'px';
-      container.style.top = centerY + 'px';
-      container.style.width = '200vmax';
-      container.style.height = '200vmax';
+      const c = document.getElementById('rainbow-container'); c.classList.remove('rainbow-hidden');
+      c.style.left = (2*(window.innerWidth/2) - (sunXPercent/100)*window.innerWidth) + 'px';
+      c.style.top = (2*(window.innerHeight/2) - (sunYPercent/100)*window.innerHeight) + 'px';
+      c.style.width = '200vmax'; c.style.height = '200vmax';
     }
-
-    function hideRainbow() {
-      document.getElementById('rainbow-container').classList.add('rainbow-hidden');
-    }
+    function hideRainbow() { document.getElementById('rainbow-container').classList.add('rainbow-hidden'); }
 
     // ========== SYSTEM INIT ==========
     async function initSystem() {
-      let lat, lon;
+      let lat = 38.4237, lon = 27.1428;
       if (navigator.geolocation) {
         try {
-          const pos = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-          });
-          lat = pos.coords.latitude;
-          lon = pos.coords.longitude;
-        } catch (err) {
-          console.warn('Geolocation failed, default.');
-          lat = 38.4237;
-          lon = 27.1428;
-        }
-      } else {
-        lat = 38.4237;
-        lon = 27.1428;
+          const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, {timeout:5000}));
+          lat = pos.coords.latitude; lon = pos.coords.longitude;
+        } catch (err) {}
       }
-
       updateSolarPosition(lat, lon);
       await fetchWeather(lat, lon);
     }
-    
-    initSystem();
-    setInterval(initSystem, 60000);
+    initSystem(); setInterval(initSystem, 60000);
 
-    // ========== AERO GLASS DROPLET ENGINE (cursor) ==========
+    // ========== AERO GLASS DROPLET ENGINE (CLICK ONLY) ==========
     (function() {
       const field = document.getElementById('droplet-field');
       const maxDroplets = 20;
       let droplets = [];
-      let lastDropTime = 0;
-      const throttleMs = 50;
 
-      function getSunPixelPos() {
-        const sunX = (sunXPercent / 100) * window.innerWidth;
-        const sunY = (sunYPercent / 100) * window.innerHeight;
-        return { x: sunX, y: sunY };
-      }
-
-      function createDroplet(x, y) {
+      window.addEventListener('click', (e) => {
         const drop = document.createElement('div');
         drop.className = 'droplet';
         
-        const sunPos = getSunPixelPos();
-        const dx = x - sunPos.x;
-        const dy = y - sunPos.y;
+        const sunX = (sunXPercent / 100) * window.innerWidth;
+        const sunY = (sunYPercent / 100) * window.innerHeight;
+        const dx = e.clientX - sunX; const dy = e.clientY - sunY;
         const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-        const lightDirX = dx / dist;
-        const lightDirY = dy / dist;
-
-        const incidentAngle = Math.atan2(lightDirY, lightDirX);
-        const hueRotation = (incidentAngle * 180 / Math.PI + 360) % 360;
-        const causticStrength = 10;
-        const causticX = -lightDirX * causticStrength;
-        const causticY = -lightDirY * causticStrength;
-
-        drop.style.left = (x - 25) + 'px';
-        drop.style.top = (y - 25) + 'px';
-        drop.style.setProperty('--caustic-x', causticX + 'px');
-        drop.style.setProperty('--caustic-y', causticY + 'px');
-        drop.style.setProperty('--hue-rotate', hueRotation + 'deg');
+        
+        const rot = (Math.atan2(dy/dist, dx/dist) * 180 / Math.PI + 360) % 360;
+        
+        drop.style.left = (e.clientX - 25) + 'px'; drop.style.top = (e.clientY - 25) + 'px';
+        drop.style.setProperty('--caustic-x', (-dx/dist * 10) + 'px');
+        drop.style.setProperty('--caustic-y', (-dy/dist * 10) + 'px');
+        drop.style.setProperty('--hue-rotate', rot + 'deg');
         drop.style.transform = `translate(-50%, -50%)`;
         
         field.appendChild(drop);
@@ -520,29 +363,57 @@
             droplets = droplets.filter(d => d.el !== drop);
           }, 600);
         }, 1500);
-      }
-
-      window.addEventListener('mousemove', (e) => {
-        const now = Date.now();
-        if (now - lastDropTime < throttleMs) return;
-        lastDropTime = now;
-        createDroplet(e.clientX, e.clientY);
       });
+    })();
 
-      window.addEventListener('click', (e) => {
-        createDroplet(e.clientX, e.clientY);
-      });
+    // ========== CURSED PHYSICS ENGINE (SHITPOST ARENA) ==========
+    (function() {
+      const arena = document.getElementById('cursed-arena');
+      const gifs = document.querySelectorAll('.cursed-gif');
+      
+      gifs.forEach(gif => {
+        // Initialize random physical states
+        let x = Math.random() * (arena.clientWidth - 80);
+        let y = Math.random() * (arena.clientHeight - 80);
+        let vx = (Math.random() - 0.5) * 8; // X Velocity
+        let vy = (Math.random() - 0.5) * 8; // Y Velocity
+        let rot = Math.random() * 360;
+        let rotV = (Math.random() - 0.5) * 10; // Angular Velocity
+        let squash = 1;
 
-      setInterval(() => {
-        const now = Date.now();
-        droplets = droplets.filter(d => {
-          if (now - d.createdAt > 2500) {
-            if (d.el.parentNode) d.el.remove();
-            return false;
+        function physicsTick() {
+          const w = arena.clientWidth;
+          const h = arena.clientHeight;
+          const gifW = 80; // Hardcoded width from CSS
+          const gifH = 80; 
+          
+          x += vx; y += vy; rot += rotV;
+
+          // Elastic collision logic (Wall bouncing)
+          let collision = false;
+          if (x <= 0) { x = 0; vx *= -1.05; rotV *= -1; collision = true; }
+          if (x >= w - gifW) { x = w - gifW; vx *= -1.05; rotV *= -1; collision = true; }
+          if (y <= 0) { y = 0; vy *= -1.05; rotV *= -1; collision = true; }
+          if (y >= h - gifH) { y = h - gifH; vy *= -1.05; rotV *= -1; collision = true; }
+          
+          // Terminal velocity cap to prevent infinite energy accumulation
+          vx = Math.max(Math.min(vx, 15), -15);
+          vy = Math.max(Math.min(vy, 15), -15);
+
+          // Cursed visual glitch on impact
+          if (collision) {
+            squash = 0.5; // Squashes on impact
+            gif.style.filter = `hue-rotate(${Math.random() * 360}deg) invert(${Math.random() > 0.8 ? 1 : 0})`;
+          } else {
+            squash += (1 - squash) * 0.1; // Springs back to normal scale
           }
-          return true;
-        });
-      }, 3000);
+
+          gif.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg) scale(${squash}, ${2 - squash})`;
+          requestAnimationFrame(physicsTick);
+        }
+        
+        physicsTick();
+      });
     })();
   </script>
 </body>
