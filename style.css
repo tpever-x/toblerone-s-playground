@@ -1,7 +1,7 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 /* ================================================================
-   BASE & THEMES (unchanged astronomical sky)
+   BASE & THEMES (Astronomical sky)
    ================================================================ */
 body {
   font-family: "Segoe UI", Frutiger, Arial, sans-serif;
@@ -83,182 +83,111 @@ body[data-theme="night"] .cv-subtitle { color: #90d47c; }
 body[data-theme="night"] .divider { background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent); }
 
 /* ================================================================
-   DROPLET FIELD (cursor droplets)
+   SHITPOST CONTAINMENT ZONE (Cursed CSS)
    ================================================================ */
-#droplet-field {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  pointer-events: none;
-  z-index: 9999;
+.containment-zone {
+  margin-top: 40px;
+  padding: 20px;
+  background: rgba(255, 0, 0, 0.05);
+  border: 1px dashed rgba(255, 0, 0, 0.5);
+  border-radius: 10px;
+}
+
+.glitched-text {
+  color: #c90000;
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
+  animation: jitter 0.2s infinite;
+}
+body[data-theme="night"] .glitched-text { color: #ff4a4a; }
+
+@keyframes jitter {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-2px, 1px); }
+  40% { transform: translate(1px, -1px); }
+  60% { transform: translate(-1px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0, 0); }
+}
+
+.cursed-arena {
+  position: relative;
+  width: 100%;
+  height: 250px;
+  background: repeating-linear-gradient(45deg, rgba(0,0,0,0.05), rgba(0,0,0,0.05) 10px, transparent 10px, transparent 20px);
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
   overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+}
+body[data-theme="night"] .cursed-arena {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,0.05), rgba(255,255,255,0.05) 10px, transparent 10px, transparent 20px);
+  border-color: rgba(255,255,255,0.2);
 }
 
-.droplet {
+.cursed-gif {
   position: absolute;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: radial-gradient(circle at calc(50% + var(--caustic-x, 0px)) calc(50% + var(--caustic-y, 0px)),
-    rgba(255,255,255,0.9) 0%,
-    rgba(255,255,255,0.4) 30%,
-    rgba(200,220,255,0.2) 70%,
-    rgba(100,150,255,0.1) 100%
-  );
-  backdrop-filter: blur(6px) brightness(1.2) contrast(1.1);
-  -webkit-backdrop-filter: blur(6px) brightness(1.2) contrast(1.1);
-  border: 1px solid rgba(255,255,255,0.8);
-  box-shadow:
-    inset 0 0 8px rgba(255,255,255,0.6),
-    0 0 12px rgba(255,255,255,0.3),
-    0 0 20px rgba(100,150,255,0.4);
-  filter: hue-rotate(var(--hue-rotate, 0deg));
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
   pointer-events: none;
-  opacity: 0.8;
+  /* Hardware acceleration to keep the 2D physics running smooth */
+  will-change: transform; 
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
 }
 
-.droplet.evaporating {
-  opacity: 0;
-  transform: scale(0.2) !important;
+/* ================================================================
+   DROPLET FIELD (Click only droplets)
+   ================================================================ */
+#droplet-field { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; overflow: hidden; }
+.droplet {
+  position: absolute; width: 50px; height: 50px; border-radius: 50%;
+  background: radial-gradient(circle at calc(50% + var(--caustic-x, 0px)) calc(50% + var(--caustic-y, 0px)),
+    rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.4) 30%, rgba(200,220,255,0.2) 70%, rgba(100,150,255,0.1) 100%
+  );
+  backdrop-filter: blur(6px) brightness(1.2) contrast(1.1); -webkit-backdrop-filter: blur(6px) brightness(1.2) contrast(1.1);
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow: inset 0 0 8px rgba(255,255,255,0.6), 0 0 12px rgba(255,255,255,0.3), 0 0 20px rgba(100,150,255,0.4);
+  filter: hue-rotate(var(--hue-rotate, 0deg));
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out; pointer-events: none; opacity: 0.8;
 }
+.droplet.evaporating { opacity: 0; transform: scale(0.2) !important; }
 
 /* ================================================================
    RAIN CONTAINER (wind-tilted)
    ================================================================ */
-#rain-container {
-  position: fixed;
-  top: -20px;
-  left: 0;
-  width: 100%;
-  height: 120%;
-  pointer-events: none;
-  z-index: 5000;
-  overflow: hidden;
-  transform-origin: top center;
-  /* rotation set by JS */
-}
-
-.rain-drop {
-  position: absolute;
-  width: 2px;
-  height: 15px;
-  background: linear-gradient(to bottom, rgba(200,220,255,0.9), rgba(100,150,255,0.4));
-  border-radius: 1px;
-  animation: rainFall linear infinite;
-}
-
-@keyframes rainFall {
-  0% { transform: translateY(-20vh); opacity: 1; }
-  100% { transform: translateY(120vh); opacity: 0.2; }
-}
-
-.snow-flake {
-  position: absolute;
-  top: -20px;
-  width: 8px;
-  height: 8px;
-  background: rgba(255,255,255,0.9);
-  border-radius: 50%;
-  filter: blur(1.5px);
-  animation: snowFall linear infinite;
-}
-
-@keyframes snowFall {
-  0% { transform: translateY(-5vh) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(120vh) rotate(360deg); opacity: 0; }
-}
+#rain-container { position: fixed; top: -20px; left: 0; width: 100%; height: 120%; pointer-events: none; z-index: 5000; overflow: hidden; transform-origin: top center; }
+.rain-drop { position: absolute; width: 2px; height: 15px; background: linear-gradient(to bottom, rgba(200,220,255,0.9), rgba(100,150,255,0.4)); border-radius: 1px; animation: rainFall linear infinite; }
+@keyframes rainFall { 0% { transform: translateY(-20vh); opacity: 1; } 100% { transform: translateY(120vh); opacity: 0.2; } }
+.snow-flake { position: absolute; top: -20px; width: 8px; height: 8px; background: rgba(255,255,255,0.9); border-radius: 50%; filter: blur(1.5px); animation: snowFall linear infinite; }
+@keyframes snowFall { 0% { transform: translateY(-5vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(120vh) rotate(360deg); opacity: 0; } }
 
 /* ================================================================
    FOG OVERLAY
    ================================================================ */
-#fog-overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  pointer-events: none;
-  z-index: 1000;
-  backdrop-filter: blur(15px) brightness(0.9) contrast(0.8);
-  -webkit-backdrop-filter: blur(15px) brightness(0.9) contrast(0.8);
-  background: rgba(180, 190, 200, 0.3);
-  transition: opacity 1.5s ease;
-}
-
+#fog-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; backdrop-filter: blur(15px) brightness(0.9) contrast(0.8); -webkit-backdrop-filter: blur(15px) brightness(0.9) contrast(0.8); background: rgba(180, 190, 200, 0.3); transition: opacity 1.5s ease; }
 .fog-hidden { opacity: 0; visibility: hidden; }
 .fog-visible { opacity: 1; visibility: visible; }
 
 /* ================================================================
    CLOUD LAYERS
    ================================================================ */
-#cloud-field {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  pointer-events: none;
-  z-index: 2;
-  overflow: hidden;
-}
-
-.cloud-layer {
-  position: absolute;
-  background: radial-gradient(ellipse at center, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%);
-  border-radius: 50%;
-  filter: blur(8px);
-  animation: cloudDrift linear infinite alternate;
-}
-
-@keyframes cloudDrift {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(60px); }
-}
+#cloud-field { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: hidden; }
+.cloud-layer { position: absolute; background: radial-gradient(ellipse at center, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%); border-radius: 50%; filter: blur(8px); animation: cloudDrift linear infinite alternate; }
+@keyframes cloudDrift { 0% { transform: translateX(0); } 100% { transform: translateX(60px); } }
 
 /* ================================================================
    LIGHTNING CANVAS & FLASH
    ================================================================ */
-#lightning-canvas {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  pointer-events: none;
-  z-index: 8000;
-}
-
-#flash-overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(255,255,255,0.8);
-  pointer-events: none;
-  z-index: 7999;
-  transition: opacity 0.1s ease;
-  opacity: 0;
-}
-
+#lightning-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 8000; }
+#flash-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); pointer-events: none; z-index: 7999; transition: opacity 0.1s ease; opacity: 0; }
 .flash-hidden { opacity: 0; }
 .flash-visible { opacity: 1; }
 
 /* ================================================================
    RAINBOW
    ================================================================ */
-#rainbow-container {
-  position: fixed;
-  pointer-events: none;
-  z-index: 6000;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: radial-gradient(circle at center,
-    transparent 60%,
-    rgba(255,0,0,0.4) 61%,
-    rgba(255,154,0,0.4) 63%,
-    rgba(255,255,0,0.4) 65%,
-    rgba(0,255,0,0.4) 67%,
-    rgba(0,0,255,0.4) 69%,
-    rgba(75,0,130,0.4) 71%,
-    rgba(143,0,255,0.4) 73%,
-    transparent 74%);
-  transition: opacity 2s ease;
-}
-
+#rainbow-container { position: fixed; pointer-events: none; z-index: 6000; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at center, transparent 60%, rgba(255,0,0,0.4) 61%, rgba(255,154,0,0.4) 63%, rgba(255,255,0,0.4) 65%, rgba(0,255,0,0.4) 67%, rgba(0,0,255,0.4) 69%, rgba(75,0,130,0.4) 71%, rgba(143,0,255,0.4) 73%, transparent 74%); transition: opacity 2s ease; }
 .rainbow-hidden { opacity: 0; }
 
 /* ================================================================
