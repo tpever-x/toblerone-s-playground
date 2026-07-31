@@ -193,7 +193,7 @@
   </section>
 
   <footer>
-    AERO ENGINE v2.6 · ZERO DEPENDENCIES · SUN SOLVED <span id="sunCount2">0</span> TIMES THIS SESSION<br>
+    AERO ENGINE v2.6 · TWO FILES · ZERO DEPENDENCIES · SUN SOLVED <span id="sunCount2">0</span> TIMES THIS SESSION<br>
     LIVE WEATHER BY OPEN-METEO · CTRL+SHIFT+D FOR THE DEV CONSOLE
   </footer>
 </main>
@@ -585,7 +585,7 @@ addEventListener('pointerdown',e=>{
   Snd.plop(P.dropSize);
 });
 
-/* ===== ARENA (EE-themed specimens + CHAOS adoption) ===== */
+/* ===== ARENA ===== */
 const ROSTER=[['⚡','FPGA.FERAL',48],['🔌','PLUG.UNCHAINED',20],['💾','MEMLEAK',210],['🖥️','BSOD.EXE',215],['🤖','ROGUE.SERVO',150],['📟','OVERVOLT',90],['🔋','CAP.GO-BRR',120]];
 const EXTRA=[['🔧','SOLDER.GOBLIN',30],['📡','RF.GREMLIN',265],['🧲','FLUX.TRAIL',190],['💡','FILAMENT',55],['⚙️','GEAR.GHOST',230]];
 const Arena={bodies:[],W:0,H:0,acc:0,hits:0,ke:0,stage:null,
@@ -616,7 +616,6 @@ const Arena={bodies:[],W:0,H:0,acc:0,hits:0,ke:0,stage:null,
     for(const b of this.bodies){if(b.grab)continue;
       if(gOn)b.vy+=640*dt;
       b.x+=b.vx*dt;b.y+=b.vy*dt;b.ang+=b.av*dt;
-      // speed cap prevents tunneling after CHAOS boosts
       const sp=Math.hypot(b.vx,b.vy);if(sp>2600){b.vx*=2600/sp;b.vy*=2600/sp;}
       if(b.x<b.r){b.x=b.r;if(b.vx<0)this.wallHit(b,-1,0,Math.abs(b.vx));b.vx=Math.abs(b.vx)*e;}
       else if(b.x>this.W-b.r){b.x=this.W-b.r;if(b.vx>0)this.wallHit(b,1,0,b.vx);b.vx=-Math.abs(b.vx)*e;}
@@ -645,7 +644,7 @@ const Arena={bodies:[],W:0,H:0,acc:0,hits:0,ke:0,stage:null,
     b.el.style.transform=`translate(${(b.x-b.r).toFixed(2)}px,${(b.y-b.r).toFixed(2)}px) rotate(${ang.toFixed(3)}rad)`+
       ` scale(${(1+s).toFixed(3)},${(1-s).toFixed(3)}) rotate(${(-ang).toFixed(3)}rad) rotate(${b.ang.toFixed(3)}rad)`;}},
   shake(){for(const b of this.bodies){if(b.grab)continue;b.vx+=(Math.random()-.5)*900;b.vy+=(Math.random()-.5)*900;b.av+=(Math.random()-.5)*8;}},
-  chaos(){for(const b of this.bodies){if(b.grab)continue;b.vx*=2.5;b.vy*=2.5;b.av*=2;}}  // ADOPTED: your boostCursedPhysics
+  chaos(){for(const b of this.bodies){if(b.grab)continue;b.vx*=2.5;b.vy*=2.5;b.av*=2;}}
 };
 
 /* ===== SOUND ===== */
@@ -760,7 +759,6 @@ function frame(now){
   applyTheme(S.pal,sun,scr);
   S.wxNow=effWx();
   S.stormF+=((S.wxNow.type==='thunder'?1:0)-S.stormF)*Math.min(1,dt*1.5);
-  // ADOPTED fog blur layer
   const fogT=S.wxNow.type==='fog'?.85*S.wxNow.intensity+.1:0;
   S.fogA+=(fogT-S.fogA)*Math.min(1,dt*.5);$('fogBlur').style.opacity=S.fogA.toFixed(3);
   drawSky(dt);
