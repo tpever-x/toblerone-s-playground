@@ -386,7 +386,15 @@ async function fetchWeather(){
       cloud:u.cloud_cover,wind:u.wind_speed_10m,wdir:u.wind_direction_10m,src:'LIVE · OPEN-METEO'};
   }catch(e){S.live=simWeather();}
 }
-const effWx=()=>P.wx!=='auto'?{type:P.wx,intensity:.85,temp:null,hum:55,cloud:P.wx==='clear'?8:92,wind:14,wdir:250,src:'MANUAL OVERRIDE',sim:true}:S.live;
+const effWx=()=>{
+  if(P.wx!=='auto'){
+    let cloud_cov = 8;
+    if(P.wx==='rain' || P.wx==='snow' || P.wx==='thunder') cloud_cov = 85;
+    if(P.wx==='fog') cloud_cov = 60;
+    return {type:P.wx,intensity:.85,temp:S.live?S.live.temp:null,hum:S.live?S.live.hum:55,cloud:cloud_cov,wind:S.live?S.live.wind:14,wdir:S.live?S.live.wdir:250,src:'MANUAL OVERRIDE',sim:true};
+  }
+  return S.live;
+};
 const windKmh=()=>P.windOv>=0?P.windOv:(S.wxNow?.wind??10);
 const windDirX=()=>-Math.sin((S.wxNow?.wdir??250)*RAD);
 
@@ -713,9 +721,26 @@ addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&(e.key==='D'||e.key==='
     devcon.style.left=clamp(e.clientX-d.dx,8,innerWidth-360)+'px';
     devcon.style.top=clamp(e.clientY-d.dy,8,innerHeight-80)+'px';devcon.style.bottom='auto';});
   t.addEventListener('pointerup',()=>d=null);})();
-function bindGroup(id,attr,set){$(id).querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
-  $(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));set(b.dataset[attr]);}));}
-bindGroup('thBtns','th',v=>P.theme=v);bindGroup('wxBtns','wx',v=>P.wx=v);
+
+function bindGroup(id,attr,set){
+  const container = $(id);
+  const btns = container.querySelectorAll('button');
+  btns.forEach(b => {
+    b.addEventListener('click', () => {
+      btns.forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      set(b.dataset[attr]);
+      // Force clearing old particles so new weather shows instantly
+      if (attr === 'wx') {
+         rain.length = 0; snow.length = 0; fogP.length = 0;
+      }
+    });
+  });
+}
+
+bindGroup('thBtns','th',v=>P.theme=v);
+bindGroup('wxBtns','wx',v=>P.wx=v);
+
 function bindSlider(id,out,fn,fmt){$(id).addEventListener('input',e=>{const v=+e.target.value;fn(v);$(out).textContent=fmt(v);});}
 bindSlider('sDens','vDens',v=>P.density=v,v=>v.toFixed(1)+'×');
 bindSlider('sGrav','vGrav',v=>P.gravity=v,v=>v.toFixed(1)+'×');
@@ -757,7 +782,10 @@ function frame(now){
   S.pal=paletteFor(effAlt);S.amb=S.pal.amb;S.phase=phaseOf(sun.altDeg,sun.H);
   S.moon=Astro.moon(new Date(),S.coords.lat,S.coords.lon);
   applyTheme(S.pal,sun,scr);
+  
+  // Calculate current weather from override or live data
   S.wxNow=effWx();
+  
   S.stormF+=((S.wxNow.type==='thunder'?1:0)-S.stormF)*Math.min(1,dt*1.5);
   const fogT=S.wxNow.type==='fog'?.85*S.wxNow.intensity+.1:0;
   S.fogA+=(fogT-S.fogA)*Math.min(1,dt*.5);$('fogBlur').style.opacity=S.fogA.toFixed(3);
