@@ -1,4 +1,4 @@
-/* ============ AERO ENGINE v2.6 — PATCHED BUILD ============
+/* ============ AERO ENGINE v2.7 — HIGH LOAD BUILD ============
  * All dead IDs wired · all noted bugs fixed · zero new dependencies.
  * Changelog vs. user-supplied v2.6:
  *   [fix]  S.boltT repurposed-then-renamed → S.hitCount (initialized 0)
@@ -46,7 +46,7 @@ const S = {
   sunRiseSetCache: { time: 0, rise: null, set: null }
 };
 const P = {
-  theme: 'auto', wx: 'auto', density: RM ? 0.4 : 1, gravity: 1,
+  theme: 'auto', wx: 'auto', density: RM ? 0.8 : 2.5, gravity: 1, gpuLoops: RM ? 24 : 96, gpuScale: RM ? 1 : 2,
   windOv: -1, elas: 1, dropSize: 7, sound: false, zeroG: true
 };
 
@@ -138,9 +138,87 @@ const wxCv  = $('wx'),  wxCtx  = wxCv.getContext('2d');
 const glCv  = $('glassCv'), glCtx = glCv.getContext('2d');
 let W = window.innerWidth, H = window.innerHeight;
 
+/* ===== GPU ATMOSPHERE / WEBGL2 STRESS LAYER =====
+   Procedural fragment shader: refractive water, volumetric haze, chromatic
+   aberration and animated micro-caustics. No textures, no dependencies.
+   Deliberately compute-heavy; controlled from the dev console. */
+const gpuCv = $('gpuCanvas');
+const gpu = gpuCv && (gpuCv.getContext('webgl2', {alpha:true, antialias:false, powerPreference:'high-performance'}) ||
+                     gpuCv.getContext('webgl',  {alpha:true, antialias:false, powerPreference:'high-performance'}));
+let gpuProgram = null, gpuUniforms = null, gpuReady = false;
+
+function initGPU() {
+  if (!gpu) return;
+  const is2 = !!gpu.createVertexArray;
+  const vs = `#version ${is2 ? '300 es' : '100'}
+  ${is2 ? 'in vec2 aPos; out vec2 vUv;' : 'attribute vec2 aPos; varying vec2 vUv;'}
+  void main(){ vUv = aPos*.5+.5; gl_Position=vec4(aPos,0.0,1.0); }`;
+  const fs = `${is2 ? '#version 300 es\nprecision highp float; in vec2 vUv; out vec4 outColor;' : 'precision highp float; varying vec2 vUv;'}
+  uniform vec2 uRes; uniform float uTime; uniform float uLoops; uniform float uSun;
+  float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+  float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f); float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+1.0); return mix(mix(a,b,f.x),mix(c,d,f.x),f.y); }
+  void main(){
+    vec2 uv=vUv; vec2 p=(uv-.5)*vec2(uRes.x/uRes.y,1.0);
+    float t=uTime;
+    float horizon=1.0-smoothstep(-.18,.55,uv.y);
+    float wave=0.0; float acc=0.0;
+    for(int i=0;i<160;i++){
+      float fi=float(i); if(fi>=uLoops) break;
+      vec2 q=p*(1.2+fi*.017);
+      q.x += sin(t*.00035+fi*.73+q.y*3.2)*.018;
+      q.y += cos(t*.00029+fi*.41+q.x*4.1)*.014;
+      float n=noise(q*3.0+vec2(t*.00003*fi,t*.00002*fi));
+      float r=length(q+vec2(sin(fi)*.04,cos(fi*1.7)*.03));
+      float ca=exp(-r*(2.5+mod(fi,7.0)*.45))*n;
+      wave += ca*(.55+.45*sin(fi*1.7+t*.001));
+      acc += n*.0025;
+    }
+    float bands=0.5+0.5*sin((p.x*7.0+p.y*19.0)+sin(p.y*9.0+t*.0008)*2.5);
+    float caustic=pow(max(0.0,wave*.035+bands*.045+acc),2.2);
+    float sun=exp(-length(vec2(p.x*1.1,(p.y-(.25-uSun*.0015))*1.6))*5.0);
+    float haze=pow(max(0.0,1.0-abs(uv.y-.5)*1.7),2.0)*.11;
+    vec3 col=vec3(.02,.22,.42)*horizon + vec3(.02,.08,.16)*(1.0-horizon);
+    col += vec3(.05,.35,.9)*caustic;
+    col += vec3(1.0,.72,.35)*sun*.18;
+    col += vec3(.12,.45,1.0)*haze;
+    float chrom=0.008*sin(t*.0006+p.y*13.0);
+    col.r += max(0.0,chrom)*.8; col.b += max(0.0,-chrom)*1.2;
+    ${is2 ? 'outColor=vec4(col, .72);' : 'gl_FragColor=vec4(col,.72);'}
+  }`;
+  function compile(type,src){ const sh=gpu.createShader(type); gpu.shaderSource(sh,src); gpu.compileShader(sh); return sh; }
+  const prog=gpu.createProgram(), v=compile(gpu.VERTEX_SHADER,vs), f=compile(gpu.FRAGMENT_SHADER,fs);
+  gpu.attachShader(prog,v); gpu.attachShader(prog,f); gpu.linkProgram(prog);
+  if(!gpu.getProgramParameter(prog,gpu.LINK_STATUS)){ console.warn('GPU shader unavailable:',gpu.getProgramInfoLog(prog)); return; }
+  gpuProgram=prog; gpu.useProgram(prog);
+  const buf=gpu.createBuffer(); gpu.bindBuffer(gpu.ARRAY_BUFFER,buf);
+  gpu.bufferData(gpu.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gpu.STATIC_DRAW);
+  const loc=gpu.getAttribLocation(prog,'aPos'); gpu.enableVertexAttribArray(loc); gpu.vertexAttribPointer(loc,2,gpu.FLOAT,false,0,0);
+  gpuUniforms={res:gpu.getUniformLocation(prog,'uRes'),time:gpu.getUniformLocation(prog,'uTime'),loops:gpu.getUniformLocation(prog,'uLoops'),sun:gpu.getUniformLocation(prog,'uSun')};
+  gpuReady=true;
+}
+function resizeGPU(){
+  if(!gpuReady) return;
+  const scale=P.gpuScale || 1;
+  const d=Math.min(window.devicePixelRatio||1,1.5)*scale;
+  gpuCv.width=Math.min(3840,Math.floor(window.innerWidth*d));
+  gpuCv.height=Math.min(2160,Math.floor(window.innerHeight*d));
+  gpu.viewport(0,0,gpuCv.width,gpuCv.height);
+}
+function renderGPU(time, sunAlt){
+  if(!gpuReady) return;
+  gpu.useProgram(gpuProgram);
+  gpu.uniform2f(gpuUniforms.res,gpuCv.width,gpuCv.height);
+  gpu.uniform1f(gpuUniforms.time,time);
+  gpu.uniform1f(gpuUniforms.loops,P.gpuLoops);
+  gpu.uniform1f(gpuUniforms.sun,sunAlt);
+  gpu.drawArrays(gpu.TRIANGLE_STRIP,0,4);
+}
+initGPU();
+
+
 function seedStars() {
   S.stars = [];
-  const count = Math.min(220, Math.floor(W * H / 8000));
+  const count = Math.min(1200, Math.floor(W * H / 1500));
   for (let i = 0; i < count; i++) {
     S.stars.push({
       x: Math.random() * W, y: Math.random() * H,
@@ -154,10 +232,12 @@ function resize() {
   W = newW; H = newH;
   [skyCv, wxCv, glCv].forEach(c => { c.width = W; c.height = H; });
   seedStars();
+  resizeGPU();
 }
 window.addEventListener('resize', resize);
 resize();
 seedStars();
+resizeGPU();
 
 /* ===== WEATHER FETCH & PARTICLES ===== */
 async function fetchWeather() {
@@ -205,9 +285,9 @@ class Particle {
   reset(randomY = false) {
     this.x = Math.random() * W;
     this.y = randomY ? Math.random() * H : -10;
-    this.size = this.type === 'rain' ? Math.random() * 1.5 + 0.5 : Math.random() * 2.5 + 1;
-    this.vy = (this.type === 'rain' ? Math.random() * 8 + 8 : Math.random() * 2 + 1) * P.gravity;
-    this.vx = P.windOv !== -1 ? P.windOv / 10 : (Math.random() - 0.5) * (this.type === 'snow' ? 1 : 0.5);
+    this.size = this.type === 'rain' ? Math.random() * 1.5 + 0.5 : this.type === 'snow' ? Math.random() * 2.5 + 1 : Math.random() * 1.8 + 0.35;
+    this.vy = (this.type === 'rain' ? Math.random() * 8 + 8 : this.type === 'snow' ? Math.random() * 2 + 1 : Math.random() * 0.7 + 0.15) * P.gravity;
+    this.vx = P.windOv !== -1 ? P.windOv / 10 : (Math.random() - 0.5) * (this.type === 'snow' ? 1 : this.type === 'mist' ? 0.8 : 0.5);
   }
   update(dt) {
     this.x += this.vx * (dt / 16);
@@ -215,7 +295,7 @@ class Particle {
     if (this.y > H || this.x < -20 || this.x > W + 20) this.reset();
   }
   draw(ctx) {
-    ctx.fillStyle = this.type === 'rain' ? 'rgba(170, 210, 255, 0.6)' : 'rgba(255, 255, 255, 0.8)';
+    ctx.fillStyle = this.type === 'rain' ? 'rgba(170, 210, 255, 0.6)' : this.type === 'mist' ? 'rgba(210, 240, 255, 0.18)' : 'rgba(255, 255, 255, 0.8)';
     ctx.beginPath();
     if (this.type === 'rain') {
       ctx.rect(this.x, this.y, this.size * 0.7, this.size * 5);
@@ -228,13 +308,17 @@ class Particle {
 
 function updateWeatherSystem() {
   const targetType = P.wx === 'auto' ? S.wxNow : P.wx;
-  const targetCount = targetType === 'rain' ? 300 * P.density
-                    : targetType === 'snow' ? 150 * P.density
+  const weatherCount = targetType === 'rain' ? 1800 * P.density
+                    : targetType === 'snow' ? 900 * P.density
                     : 0;
+  const targetCount = Math.round(1200 * P.density + weatherCount);
   if (targetType === 'fog') S.fogA = Math.min(S.fogA + 0.01, 1);
   else                       S.fogA = Math.max(S.fogA - 0.05, 0);
   $('fogBlur').style.opacity = S.fogA;
-  while (particles.length < targetCount) particles.push(new Particle(targetType || 'rain'));
+  while (particles.length < targetCount) {
+    const i = particles.length;
+    particles.push(new Particle(i < Math.round(1200 * P.density) ? 'mist' : (targetType || 'rain')));
+  }
   while (particles.length > targetCount) particles.pop();
 }
 
@@ -481,6 +565,8 @@ $('sDens').addEventListener('input', e => { P.density  = +e.target.value; $('vDe
 $('sGrav').addEventListener('input', e => { P.gravity  = +e.target.value; $('vGrav').innerText = P.gravity.toFixed(1) + '×'; });
 $('sElas').addEventListener('input', e => { P.elas     = +e.target.value; $('vElas').innerText = P.elas.toFixed(2); $('eOut').innerText = P.elas.toFixed(2); });
 $('sSize').addEventListener('input', e => { P.dropSize = +e.target.value; $('vSize').innerText = P.dropSize + 'px'; });
+$('sGpu').addEventListener('input', e => { P.gpuLoops = +e.target.value; $('vGpu').innerText = P.gpuLoops + '×'; });
+$('sGpuScale').addEventListener('input', e => { P.gpuScale = +e.target.value; $('vGpuScale').innerText = P.gpuScale.toFixed(1) + '×'; resizeGPU(); });
 $('sWind').addEventListener('input', e => {
   const v = +e.target.value;
   if (v < 0) { P.windOv = -1; $('vWind').innerText = 'AUTO'; }
@@ -556,6 +642,8 @@ function tick(time) {
   S.amb = amb;
   $('bgGrad').style.background = `linear-gradient(180deg, ${css(top)} 0%, ${css(mid)} 52%, ${css(bot)} 100%)`;
 
+  renderGPU(time, sun.altDeg);
+
   skyCtx.clearRect(0, 0, W, H);
   wxCtx.clearRect(0, 0, W, H);
   glCtx.clearRect(0, 0, W, H);
@@ -578,6 +666,26 @@ function tick(time) {
     skyCtx.beginPath(); skyCtx.arc(W / 2, sY, 40, 0, TAU); skyCtx.fill();
     skyCtx.shadowBlur = 40; skyCtx.shadowColor = '#fff'; skyCtx.fill(); skyCtx.shadowBlur = 0;
   }
+
+  // HIGH-LOAD REFRACTION FIELD: deliberately expensive procedural caustics.
+  // This is intentionally CPU/GPU hungry: many gradients + compositing passes every frame.
+  glCtx.save();
+  glCtx.globalCompositeOperation = 'screen';
+  const cx = W * 0.5 + Math.sin(time * 0.00037) * W * 0.08;
+  const cy = H * 0.78 + Math.cos(time * 0.00029) * H * 0.05;
+  for (let i = 0; i < 28; i++) {
+    const a = time * 0.00015 * (i + 1);
+    const x = cx + Math.sin(a * 1.7 + i) * W * (0.10 + i * 0.002);
+    const y = cy + Math.cos(a * 1.3 - i) * H * (0.05 + i * 0.0015);
+    const r = 55 + (i % 7) * 22;
+    const g = glCtx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(255,255,255,${0.035 + (i % 4) * 0.012})`);
+    g.addColorStop(0.55, `rgba(80,210,255,${0.025 + (i % 3) * 0.01})`);
+    g.addColorStop(1, 'rgba(0,120,255,0)');
+    glCtx.fillStyle = g;
+    glCtx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  glCtx.restore();
 
   updateWeatherSystem();
   particles.forEach(p => { p.update(dt); p.draw(wxCtx); });
@@ -627,7 +735,7 @@ function tick(time) {
 
 /* ===== SYSTEM BOOT ===== */
 fetchWeather();
-createSpecimen(); createSpecimen(); createSpecimen();
+for (let i = 0; i < 72; i++) createSpecimen();
 updateDock();
 requestAnimationFrame(tick);
 
