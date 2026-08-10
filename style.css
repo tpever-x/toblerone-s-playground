@@ -18,6 +18,7 @@ body{font-family:var(--font-b);color:var(--ink);overflow-x:hidden;min-height:100
 /* ---- atmosphere layers ---- */
 #bgGrad{position:fixed;inset:0;z-index:-4;background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 52%,var(--sky-bot) 100%)}
 #sky{position:fixed;inset:0;z-index:-3;pointer-events:none}
+#gpuCanvas{position:fixed;inset:0;z-index:-2;width:100%;height:100%;pointer-events:none;opacity:.52;mix-blend-mode:screen;filter:saturate(1.25) contrast(1.08);transform:translateZ(0);will-change:contents}
 #glow{position:fixed;z-index:-2;width:84vmin;height:84vmin;left:var(--sun-x);top:var(--sun-y);transform:translate(-50%,-50%);
   pointer-events:none;border-radius:50%;background:radial-gradient(circle,var(--glow) 0%,transparent 62%);opacity:.5;mix-blend-mode:screen;filter:blur(10px)}
 #vignette{position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(120% 90% at 50% 30%,transparent 55%,rgba(2,18,44,.28) 100%)}
@@ -333,3 +334,7 @@ input[type=range] { width: 100%; cursor: pointer; accent-color: #3fa9ff; }
   .tubes { justify-content: center; gap: 20px; }
   .arena-stage { height: 350px; }
 }
+/* ---- high-load visual layer ---- */
+.glass,.dock,.kicker,.chip,.hud,.devcon,.arena{contain:paint;will-change:transform,filter,backdrop-filter}
+#gpuCanvas{contain:strict;image-rendering:auto}
+.wcard,.panel{isolation:isolate}
