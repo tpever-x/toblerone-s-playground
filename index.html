@@ -2,170 +2,508 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Yetkin Köseoğlu — FPGA Datapath Designer & Semiconductor Engineering Undergrad.">
-<title>Yetkin Köseoğlu // EDA Interface v1.0</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Yetkin Köseoğlu — Atmospheric CV Engine v3.0. A CV that is also a real-time WebGL2 GPU/CPU stress simulation: procedural scattering sky, live solar trigonometry, Open-Meteo weather, multi-pass post-processing, 250k GPU particles and an elastic physics containment zone. Zero dependencies.">
+<title>Yetkin Köseoğlu — Atmospheric CV Engine v3.0 // GPU EXTREME</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g' cx='35%25' cy='30%25'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='.5' stop-color='%237fd4ff'/%3E%3Cstop offset='1' stop-color='%230a68c0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='16' cy='16' r='14' fill='url(%23g)'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- Procedural Autorouter Canvas -->
-<canvas id="substrate"></canvas>
+<!-- atmosphere stack -->
+<div id="bgGrad"></div>
+<canvas id="sky"></canvas>
+<canvas id="gpuCanvas"></canvas>
+<div id="glow"></div>
+<canvas id="wx"></canvas>
+<canvas id="glassCv"></canvas>
+<div id="fogBlur"></div>
+<div id="flash"></div>
+<div id="vignette"></div>
 
-<!-- Top Navigation / Status Bar -->
-<nav class="eda-nav">
-  <div class="nav-brand">YK_LOGIC // <span class="uv-text">FLOORPLAN_VIEW</span></div>
-  <div class="nav-links">
-    <a href="#arch">SYS.ARCH</a>
-    <a href="#utilization">UTILIZATION</a>
-    <a href="#tapeout">TAPE_OUTS</a>
-    <a href="#io">I/O_PORTS</a>
-  </div>
-  <div class="nav-status">
-    CLK: <span id="sysClock">--:--:--</span> | VCC: 1.2V
-  </div>
+<!-- dock -->
+<nav class="dock" id="dock">
+  <a href="#top"     data-sec="top"     class="on">TOP</a>
+  <a href="#about"   data-sec="about">PROFILE</a>
+  <a href="#skills"  data-sec="skills">STATS</a>
+  <a href="#log"     data-sec="log">LOG</a>
+  <a href="#work"    data-sec="work">WORK</a>
+  <a href="#zone"    data-sec="zone">ZONE</a>
+  <a href="#contact" data-sec="contact">CONTACT</a>
 </nav>
 
-<main class="wafer-grid">
-  
-  <!-- MACROBLOCK: IDENTIFICATION -->
-  <section class="macroblock hero" id="id-block">
-    <div class="block-header">
-      <span class="coord">X:00 Y:00</span>
-      <span class="gate-logic">f(x) = A+cb'</span>
+<main>
+  <!-- ============ HERO ============ -->
+  <header id="top">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="hero-k"><span class="live"></span>ATMOSPHERIC CV ENGINE · BUILD 3.0.0 · GPU/CPU EXTREME</div>
+        <h1>Yetkin <span class="thin">Köseoğlu</span></h1>
+        <p class="hero-sub">Electrical &amp; Electronics Engineering undergrad at METU Northern Cyprus — I design FPGA datapaths in Verilog by day, and by night I made this page compute its own weather. The sky behind this text is being solved right now.</p>
+        <div class="chips">
+          <span class="chip" id="chipSky">◌ COMPUTING SKY…</span>
+          <span class="chip" id="chipSun">☀ ALT —</span>
+          <span class="chip" id="chipWx">🌡 —</span>
+          <span class="chip" id="chipLoc">📍 İZMİR, TR</span>
+          <span class="chip" id="chipPhase">◐ —</span>
+        </div>
+        <div class="hero-cta">
+          <a class="btn" href="#zone">⚠ ENTER THE CONTAINMENT ZONE</a>
+          <button class="btn ghost" id="btnPrint">⎙ PRINT CV</button>
+        </div>
+      </div>
+      <div class="orb-wrap">
+        <div class="orb"><span>YK</span><i class="sat s1"></i><i class="sat s2"></i><i class="sat s3"></i></div>
+        <div class="pool"></div>
+      </div>
     </div>
-    <div class="block-content">
-      <h1>YETKIN<br>KÖSEOĞLU</h1>
-      <h2 class="uv-text">FPGA DATAPATH DESIGNER</h2>
-      <p class="data-stream">
-        > TARGETING: SEMICONDUCTOR MANUFACTURING & NANOTECHNOLOGIES<br>
-        > BASE: METU NORTHERN CYPRUS CAMPUS<br>
-        > RANK: 3/43[cite: 4] | CGPA: 3.55[cite: 4]
-      </p>
-      <div class="action-row">
-        <a href="#io" class="btn-primary">[INITIATE_HANDSHAKE]</a>
-        <button class="btn-secondary" onclick="window.print()">[DUMP_SCHEMATIC]</button>
+    <div class="cue"><i>⌄</i>SCROLL · THE PHYSICS IS REAL</div>
+  </header>
+
+  <!-- ============ PROFILE ============ -->
+  <section id="about">
+    <div class="wrap">
+      <span class="kicker rv">SYS.PROFILE</span>
+      <h2 class="rv">The sky above this CV is real.</h2>
+      <div class="waterline rv"></div>
+      <div class="about-grid">
+        <div class="glass panel rv">
+          <p class="lead">No screenshot, no looped video. The sun position is solved from your OS clock and coordinates with spherical trigonometry; the gradient, the droplet caustics, the aurora and the rainbow all fall out of that one calculation. Precipitation comes from a live Open-Meteo feed. Since v3.0 the atmosphere is ray-marched on your GPU through a multi-pass WebGL2 pipeline — bloom, scattering, 250,000 weather particles and an N-body arena, all running while you read this sentence. I treat the browser the way I treat a circuit — every frame is a clock cycle, and nothing here is faked.</p>
+          <p class="lead" style="margin-top:14px">Third-year EEE undergraduate student, ranked 3rd of 43 in my cohort. Comfortable in Verilog, MATLAB and C; happiest somewhere between a Cyclone III FPGA and a Linux terminal. Based in İzmir, studying in Northern Cyprus, and currently targeting an M.Sc. in Advanced Semiconductor Nanotechnologies at Otto von Guericke University Magdeburg.</p>
+          <div class="lang-row">
+            <span class="chip">🇹🇷 TURKISH · NATIVE</span>
+            <span class="chip">🇬🇧 ENGLISH · C1</span>
+            <span class="chip">🇩🇪 GERMAN · B1</span>
+          </div>
+        </div>
+        <div class="glass panel rv">
+          <div class="stat-row" style="margin-top:0">
+            <div class="stat"><b>3/43</b>COHORT RANK</div>
+            <div class="stat"><b>3.55</b>GPA</div>
+            <div class="stat"><b>0</b>DEPENDENCIES</div>
+            <div class="stat"><b>3</b>FILES</div>
+            <div class="stat"><b id="sunCount">0</b>SOLAR SOLVES</div>
+            <div class="stat"><b>2028</b>EXPECTED B.Sc</div>
+          </div>
+          <p class="lead" style="margin-top:18px;font-family:var(--font-m);font-size:11px;letter-spacing:1px">
+            ▸ v3.0 PIPELINE: SCENE → HDR → BLOOM → SEPARABLE BLUR ×N → CA/VIGNETTE/GRAIN<br>
+            ▸ PRESS ` TO OPEN THE ENGINE CONSOLE AND RAISE THE LOAD
+          </p>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- MACROBLOCK: ARCHITECTURE -->
-  <section class="macroblock" id="arch">
-    <div class="block-header">
-      <span class="coord">X:01 Y:00</span>
-      <span class="label">SYS.ARCH</span>
-    </div>
-    <div class="block-content">
-      <p class="body-text">
-        Hardware-oriented Electrical & Electronics Engineering undergraduate[cite: 4]. Moving from truth tables to physical silicon[cite: 4]. My focus is strictly on the manufacturing and physical layer of computation—designing the routing, state machines, and architectures that software relies on. Target objective: M.Sc. in Advanced Semiconductor Nanotechnologies at Otto von Guericke University Magdeburg.
-      </p>
-      <div class="metrics-grid" style="margin-top: 2rem;">
-        <div class="metric-box">
-          <span class="m-label">PRIMARY WORKSTATION</span>
-          <span class="m-val">ERAZER P60i</span>
-          <span class="m-sub">RTX 4060 / EPZ TP35 PRO</span>
+  <!-- ============ SKILLS ============ -->
+  <section id="skills">
+    <div class="wrap">
+      <span class="kicker rv">SYS.METRICS</span>
+      <h2 class="rv">Skills, measured in water levels.</h2>
+      <div class="waterline rv"></div>
+      <div class="glass panel rv">
+        <div class="tubes">
+          <div class="tube"><span class="tube-val">88<small>%</small></span>
+            <div class="tube-glass"><div class="water" style="--lv:88%;--h:204"><i class="wave"></i><i class="wave w2"></i><i class="bub b1"></i><i class="bub b2"></i><i class="bub b3"></i></div></div>
+            <span class="tube-lb">VERILOG HDL</span></div>
+          <div class="tube"><span class="tube-val">85<small>%</small></span>
+            <div class="tube-glass"><div class="water" style="--lv:85%;--h:196"><i class="wave"></i><i class="wave w2"></i><i class="bub b1"></i><i class="bub b2"></i><i class="bub b3"></i></div></div>
+            <span class="tube-lb">LOGIC DESIGN</span></div>
+          <div class="tube"><span class="tube-val">84<small>%</small></span>
+            <div class="tube-glass"><div class="water" style="--lv:84%;--h:188"><i class="wave"></i><i class="wave w2"></i><i class="bub b1"></i><i class="bub b2"></i><i class="bub b3"></i></div></div>
+            <span class="tube-lb">MATLAB</span></div>
+          <div class="tube"><span class="tube-val">82<small>%</small></span>
+            <div class="tube-glass"><div class="water" style="--lv:82%;--h:210"><i class="wave"></i><i class="wave w2"></i><i class="bub b1"></i><i class="bub b2"></i><i class="bub b3"></i></div></div>
+            <span class="tube-lb">C</span></div>
+          <div class="tube"><span class="tube-val">80<small>%</small></span>
+            <div class="tube-glass"><div class="water" style="--lv:80%;--h:178"><i class="wave"></i><i class="wave w2"></i><i class="bub b1"></i><i class="bub b2"></i><i class="bub b3"></i></div></div>
+            <span class="tube-lb">FPGA DESIGN</span></div>
+          <div class="tube"><span class="tube-val">76<small>%</small></span>
+            <div class="tube-glass"><div class="water" style="--lv:76%;--h:168"><i class="wave"></i><i class="wave w2"></i><i class="bub b1"></i><i class="bub b2"></i><i class="bub b3"></i></div></div>
+            <span class="tube-lb">LINUX / OSS</span></div>
         </div>
-        <div class="metric-box">
-          <span class="m-label">BACKGROUND TASKS</span>
-          <span class="m-val">L4D2 / SWIMMING</span>
-          <span class="m-sub">COMPETITIVE / ZEYBEK</span>
-        </div>
+        <p class="tube-note">▸ LEVELS SELF-REPORTED · CALIBRATED AT SEA LEVEL · 1013 hPa</p>
       </div>
     </div>
   </section>
 
-  <!-- MACROBLOCK: LOGIC UTILIZATION -->
-  <section class="macroblock span-2" id="utilization">
-    <div class="block-header">
-      <span class="coord">X:00 Y:01</span>
-      <span class="label">LOGIC_UTILIZATION</span>
-    </div>
-    <div class="block-content utilization-bars">
-      <div class="u-row">
-        <div class="u-label">VERILOG HDL</div>
-        <div class="u-track"><div class="u-fill" style="width: 88%;"></div></div>
-        <div class="u-pct">88%</div>
-      </div>
-      <div class="u-row">
-        <div class="u-label">LOGIC DESIGN[cite: 4]</div>
-        <div class="u-track"><div class="u-fill" style="width: 85%;"></div></div>
-        <div class="u-pct">85%</div>
-      </div>
-      <div class="u-row">
-        <div class="u-label">MATLAB[cite: 4]</div>
-        <div class="u-track"><div class="u-fill" style="width: 84%;"></div></div>
-        <div class="u-pct">84%</div>
-      </div>
-      <div class="u-row">
-        <div class="u-label">C / LINUX ENV[cite: 4]</div>
-        <div class="u-track"><div class="u-fill" style="width: 82%;"></div></div>
-        <div class="u-pct">82%</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- MACROBLOCK: TAPE OUTS (Projects) -->
-  <section class="macroblock span-2" id="tapeout">
-    <div class="block-header">
-      <span class="coord">X:00 Y:02</span>
-      <span class="label">TAPE_OUTS // DEPLOYED_LOGIC</span>
-    </div>
-    <div class="block-content project-grid">
-      
-      <article class="project-node">
-        <div class="p-meta">
-          <span class="p-date">JUL 2026</span>
-          <span class="p-type">INDUSTRY_INTERN</span>
-        </div>
-        <h3 class="gold-text">Setaş Sistem Bilişim A.Ş.[cite: 4]</h3>
-        <p class="body-text">Executed technical operations and system data analysis. Designed physical solar deployment layouts utilizing AutoCAD, PVSOL, and PVsyst arrays[cite: 4].</p>
-      </article>
-
-      <article class="project-node">
-        <div class="p-meta">
-          <span class="p-date">ACADEMIC</span>
-          <span class="p-type">DATAPATH_ARCH</span>
-        </div>
-        <h3 class="gold-text">Parameterized 4-bit Datapath[cite: 4]</h3>
-        <p class="body-text">Engineered a parameterized 4-bit datapath governed by custom CCU opcodes. Validated logic gates end-to-end utilizing ModelSim testbench simulation[cite: 4].</p>
-      </article>
-
-      <article class="project-node" style="grid-column: 1 / -1;">
-        <div class="p-meta">
-          <span class="p-date">FLAGSHIP</span>
-          <span class="p-type">HARDWARE_STATE_MACHINE</span>
-        </div>
-        <h3 class="gold-text">Smart Air Fryer Digital Controller[cite: 4]</h3>
-        <p class="body-text">Combinational logic controller engineered entirely in Verilog HDL and flashed to physical silicon on an Altera Cyclone III FPGA. Bypassed software abstraction entirely to realize mode selection and timing loops as pure physical hardware pathways[cite: 4].</p>
-        <div class="tag-row">
-          <span>CYCLONE III[cite: 4]</span>
-          <span>VERILOG[cite: 4]</span>
-          <span>r = 2</span>
-        </div>
-      </article>
-
-    </div>
-  </section>
-
-  <!-- MACROBLOCK: I/O PORTS -->
-  <section class="macroblock" id="io">
-    <div class="block-header">
-      <span class="coord">X:01 Y:03</span>
-      <span class="label">I/O_PORTS</span>
-    </div>
-    <div class="block-content">
-      <p class="body-text">Awaiting external stimulus. Hardware and embedded systems internship queues are currently open.</p>
-      <ul class="io-list">
-        <li><span class="io-pin">TX_LOC</span> <span class="io-val">İZMİR, TÜRKİYE[cite: 4]</span></li>
-        <li><span class="io-pin">TX_GIT</span> <a href="https://github.com/tpever-x" class="io-val hover-uv">GITHUB.COM/TPEVER-X[cite: 4]</a></li>
-        <li><span class="io-pin">TX_LNK</span> <a href="#" class="io-val hover-uv">LINKEDIN.COM/IN/YETKIN</a></li>
-        <li><span class="io-pin">TX_MAIL</span> <a href="mailto:yetkin@example.dev" class="io-val hover-uv">YETKIN@EXAMPLE.DEV[cite: 4]</a></li>
+  <!-- ============ TIMELINE ============ -->
+  <section id="log">
+    <div class="wrap">
+      <span class="kicker rv">SYS.TRAJECTORY</span>
+      <h2 class="rv">Flight Log.</h2>
+      <div class="waterline rv"></div>
+      <ul class="stream">
+        <li class="rv"><span class="dot"></span>
+          <div class="glass card">
+            <span class="when">JUL 2026</span>
+            <h3>Intern — Setaş Sistem Bilişim A.Ş.</h3>
+            <div class="role">İzmir, Türkiye</div>
+            <p>Hands-on work with AutoCAD, PVSOL and PVsyst for solar system design; assisted staff with daily technical operations and data analysis.</p>
+          </div>
+        </li>
+        <li class="rv"><span class="dot"></span>
+          <div class="glass card">
+            <span class="when">2025 — 2026</span>
+            <h3>Logic Design &amp; First Silicon</h3>
+            <div class="role">METU NCC</div>
+            <p>EEE 248: moved from truth tables to real hardware — deployed a combinational controller on a Cyclone III FPGA and validated a custom datapath in ModelSim.</p>
+          </div>
+        </li>
+        <li class="rv"><span class="dot"></span>
+          <div class="glass card">
+            <span class="when">2024 — PRESENT</span>
+            <h3>B.Sc Electrical &amp; Electronics Engineering</h3>
+            <div class="role">Middle East Technical University, Northern Cyprus Campus</div>
+            <p>Undergraduate student. Ranked 3rd out of 43 in cohort · cumulative GPA 3.55. Expected graduation 07.2028.</p>
+          </div>
+        </li>
       </ul>
     </div>
   </section>
 
+  <!-- ============ WORK ============ -->
+  <section id="work">
+    <div class="wrap">
+      <span class="kicker rv">SYS.ARCHIVE</span>
+      <h2 class="rv">Selected builds.</h2>
+      <div class="waterline rv"></div>
+      <div class="work-grid">
+        <div class="glass wcard feat tilt rv">
+          <span class="wtag">FLAGSHIP · DIGITAL DESIGN</span>
+          <h3>Smart Air Fryer Digital Controller</h3>
+          <p>A combinational logic controller designed in Verilog HDL and deployed on a Cyclone III FPGA — the full state machine for a smart air fryer, from mode selection to timing, realized in hardware rather than software.</p>
+          <div class="wmeta"><span>VERILOG</span><span>CYCLONE III</span><span>COMBINATIONAL</span><span>FPGA</span></div>
+          <span class="flink" title="Schematic available on request">DETAILS ↗</span>
+        </div>
+        <div class="glass wcard tilt rv">
+          <span class="wtag">DATAPATH · ARCHITECTURE</span>
+          <h3>Parameterized 4-bit Datapath</h3>
+          <p>A parameterized 4-bit datapath with custom CCU opcodes, validated end-to-end in ModelSim testbenches.</p>
+          <div class="wmeta"><span>CCU OPCODES</span><span>MODELSIM</span></div>
+          <span class="flink" title="Source available on request">DETAILS ↗</span>
+        </div>
+        <div class="glass wcard tilt rv">
+          <span class="wtag">SELF-INITIATED · WEB</span>
+          <h3>This Atmospheric Engine</h3>
+          <p>The page you're reading: live solar trigonometry, Open-Meteo weather particles, a WebGL2 multi-pass scattering sky, 250k GPU particles and an elastic N-body arena — in three files, zero dependencies.</p>
+          <div class="wmeta"><span>ASTRONOMY</span><span>WEBGL2</span><span>0 DEPS</span></div>
+          <a class="flink" href="https://github.com/tpever-x" target="_blank" rel="noopener">SOURCE ↗</a>
+        </div>
+      </div>
+      <div class="bottom-grid">
+        <div class="glass panel rv">
+          <span class="wtag">RELEVANT COURSEWORK</span>
+          <ul class="list2" style="margin-top:12px">
+            <li>EEE 202 — Circuit Theory II</li>
+            <li>EEE 212 — Semiconductor Devices</li>
+            <li>EEE 224 — Electromagnetic Theory</li>
+            <li>EEE 248 — Logic Design</li>
+          </ul>
+        </div>
+        <div class="glass panel rv">
+          <span class="wtag">INTERESTS</span>
+          <p class="lead" style="margin-top:12px">Semiconductors · Linux &amp; open source · competitive club swimming · Zeybek folklore.</p>
+          <p class="lead">Generally found either reading a datasheet or arguing about it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONTAINMENT ZONE ============ -->
+  <section id="zone">
+    <div class="wrap">
+      <span class="kicker rv">SYS.CONTAINMENT</span>
+      <h2 class="rv glitched">⚠ Containment Zone</h2>
+      <div class="waterline rv"></div>
+      <p class="lead rv">Local DOM gravity corrupted. Zero-friction environment detected. The lab specimens have escaped.</p>
+      <div class="arena rv">
+        <div class="hazard"></div>
+        <div class="arena-bar">
+          <span class="warn">⚠</span> ELASTIC ENVIRONMENT · e = <b id="eOut">1.00</b>
+          <span class="arena-stats">ΣKE <b id="keOut">0.00</b> MU · BODIES <b id="bodOut">0</b> · CHECKS <b id="chkOut">0</b> · HITS <b id="hitOut">0</b> · PHYS <b id="phyOut">0.00</b>ms</span>
+          <span class="arena-actions">
+            <button class="abtn on" id="btnZero">ZERO-G: ON</button>
+            <select class="asel" id="selBodiesA" title="Body count">
+              <option value="32">32</option><option value="64">64</option><option value="128">128</option>
+              <option value="256" selected>256</option><option value="512">512</option><option value="1024">1024</option>
+            </select>
+            <button class="abtn" id="btnAdd">+ SPECIMEN</button>
+            <button class="abtn" id="btnShake">SHAKE ⚡</button>
+            <button class="abtn" id="btnChaos">CHAOS ×2.5 👾</button>
+          </span>
+        </div>
+        <div class="arena-stage" id="stage">
+          <canvas id="arenaCv"></canvas>
+        </div>
+        <div class="arena-note">▸ DRAG A SPECIMEN TO FLING IT · WALL HITS SQUASH ON IMPACT · BODIES COLLIDE ELASTICALLY · COLLISION MODE / WORKER THREAD IN THE DEV CONSOLE ( ` )</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONTACT ============ -->
+  <section id="contact">
+    <div class="wrap">
+      <div class="glass contact rv">
+        <span class="kicker">SYS.LINK</span>
+        <h2>Initialize Contact.</h2>
+        <div class="waterline"></div>
+        <p class="lead">Open to internships and hardware/embedded projects. Condensation forms best on a clean surface.</p>
+        <div class="c-chips">
+          <span class="chip">⌂ İZMİR, TÜRKİYE</span>
+          <span class="chip">⌥ github.com/tpever-x</span>
+          <span class="chip">◈ linkedin.com/in/your-profile</span>
+          <span class="chip">✉ yetkin@example.dev</span>
+        </div>
+        <a class="btn" href="https://github.com/tpever-x" target="_blank" rel="noopener">VIEW GITHUB →</a>
+        <p class="pii">▸ EMAIL &amp; LINKEDIN ARE PLACEHOLDERS — SWAP IN YOUR REAL HANDLES BEFORE SHIPPING.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    AERO ENGINE v3.0 · GPU/CPU EXTREME BUILD · ZERO DEPENDENCIES · SUN SOLVED <span id="sunCount2">0</span> TIMES THIS SESSION<br>
+    LIVE WEATHER BY OPEN-METEO · PRESS ` FOR THE DEV CONSOLE · WEBGL2 MULTI-PASS PIPELINE
+  </footer>
 </main>
 
+<!-- HUD -->
+<aside class="hud">
+  <div class="hud-lcd" id="hudClock">--:--:--</div>
+  <div class="hud-row"><span id="hudSun">☀ —</span><span>SOLAR <b id="hudSol">--:--</b></span></div>
+  <div class="hud-row"><span id="hudWx">◌ SYNCING…</span><span id="hudSrc">--</span></div>
+  <div class="hud-row"><span id="hudLoc">İZMİR, TR</span><b id="hudFps">-- FPS</b></div>
+  <div class="hud-row"><span id="hudGpu">GPU — · —×</span><span id="hudDate2">--</span></div>
+  <div class="hud-live"><i></i>SKY ENGINE · <span id="hudEng">CONNECTING</span></div>
+</aside>
+
+<!-- benchmark HUD / report -->
+<div id="benchHud" class="bench-hud hidden">
+  BENCHMARK <b id="benchT">30</b>s · <span id="benchFps">--</span> FPS
+  <button id="btnBenchAbort">ABORT</button>
+</div>
+<div id="benchReport" class="bench-report hidden"></div>
+
+<!-- console launcher -->
+<button class="gear" id="gear" title="Dev console">⚙️</button>
+<div id="hint">💧 TIP · PRESS ` FOR THE DEV CONSOLE · CLICK THE GLASS TO CONDENSE DROPLETS</div>
+
+<!-- ============ DEV CONSOLE ============ -->
+<div class="devcon hidden" id="devcon">
+  <div class="c-title" id="cTitle">⚙ AERO ENGINE · DEV CONSOLE v3.0 · GPU/CPU EXTREME
+    <span class="sp"></span>
+    <button class="cbtn" id="cMin" title="Minimize">—</button>
+    <button class="cbtn" id="cClose" title="Close">✕</button>
+  </div>
+  <div class="c-body" id="cBody">
+    <div class="c-nav">
+      <a href="#secTel">TELEMETRY</a><a href="#secGpu">GPU</a><a href="#secShd">SHADERS</a>
+      <a href="#secPar">PARTICLES</a><a href="#secPhy">PHYSICS</a><a href="#secPost">POST FX</a>
+      <a href="#secBen">BENCHMARK</a><a href="#secWx">WEATHER</a><a href="#secAst">ASTRONOMY</a>
+    </div>
+
+    <h4 id="secTel">◈ TELEMETRY</h4>
+    <canvas id="fpsGraph" width="320" height="46"></canvas>
+    <div class="ro-grid">
+      <div class="ro"><span>FPS</span><b id="tFps">—</b></div>
+      <div class="ro"><span>FRAME</span><b id="tMs">—</b></div>
+      <div class="ro"><span>CPU FRAME (EST)</span><b id="tCpu">—</b></div>
+      <div class="ro"><span>GPU TIME</span><b id="tGpuMs">—</b></div>
+      <div class="ro"><span>GPU LOAD (EST)</span><b id="tGflops">—</b></div>
+      <div class="ro"><span>PHYSICS</span><b id="tPhysMs">—</b></div>
+      <div class="ro"><span>PARTICLES</span><b id="tParts">—</b></div>
+      <div class="ro"><span>BODIES</span><b id="tBodies">—</b></div>
+      <div class="ro"><span>DRAW CALLS</span><b id="tDraw">—</b></div>
+      <div class="ro"><span>TRIS / PTS</span><b id="tTris">—</b></div>
+      <div class="ro"><span>INTERNAL RES</span><b id="tRes">—</b></div>
+      <div class="ro"><span>DPR</span><b id="tDpr">—</b></div>
+      <div class="ro"><span>WX STATE</span><b id="tWx">—</b></div>
+      <div class="ro"><span>WIND</span><b id="tWind">—</b></div>
+      <div class="ro"><span>COORDS</span><b id="tCoords">—</b></div>
+      <div class="ro"><span>GEO</span><b id="tGeo">—</b></div>
+      <div class="ro"><span>WX SOURCE</span><b id="tSrc">—</b></div>
+    </div>
+
+    <h4 id="secGpu">◈ GPU</h4>
+    <div class="sl-h"><span>GPU LOAD (MASTER)</span><b id="vLoad">75%</b></div>
+    <div class="btn-row" id="loadBtns">
+      <button class="cbtn" data-load="25">25%</button>
+      <button class="cbtn" data-load="50">50%</button>
+      <button class="cbtn on" data-load="75">75%</button>
+      <button class="cbtn" data-load="100">100%</button>
+      <button class="cbtn" data-load="ext">EXTREME</button>
+    </div>
+    <label class="sl"><div class="sl-h"><span>RENDER SCALE</span><b id="vScale">1.5×</b></div>
+      <select id="selScale" class="asel full">
+        <option value="1">1.0×</option><option value="1.25">1.25×</option>
+        <option value="1.5" selected>1.5×</option><option value="2">2.0×</option>
+        <option value="2.5">2.5×</option><option value="3">3.0×</option>
+      </select>
+    </label>
+    <div class="ro-grid" style="margin-top:8px">
+      <div class="ro"><span>RENDERER</span><b id="gRenderer">—</b></div>
+      <div class="ro"><span>INTERNAL RES</span><b id="gRes">—</b></div>
+      <div class="ro"><span>GPU TIMER</span><b id="gTimer">—</b></div>
+      <div class="ro"><span>HDR</span><b id="gHdr">—</b></div>
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="cbtn warn" id="btnResetLoad">⟲ RESET LOAD</button>
+    </div>
+
+    <h4 id="secShd">◈ SHADERS</h4>
+    <div class="sl-h"><span>SHADER QUALITY</span><b id="vQual">HIGH</b></div>
+    <div class="btn-row" id="qualBtns">
+      <button class="cbtn" data-q="low">LOW</button>
+      <button class="cbtn" data-q="medium">MEDIUM</button>
+      <button class="cbtn on" data-q="high">HIGH</button>
+      <button class="cbtn" data-q="extreme">EXTREME</button>
+      <button class="cbtn" data-q="insane">INSANE</button>
+    </div>
+    <label class="sl"><div class="sl-h"><span>SHADER ITERATIONS (DETAIL)</span><b id="vIter">2</b></div>
+      <input type="range" id="sIter" min="0" max="8" step="1" value="2"></label>
+    <label class="sl"><div class="sl-h"><span>SCATTER SAMPLES</span><b id="vScatter">12</b></div>
+      <input type="range" id="sScatter" min="2" max="32" step="1" value="12"></label>
+    <label class="sl"><div class="sl-h"><span>DOMAIN WARP PASSES</span><b id="vWarp">2</b></div>
+      <input type="range" id="sWarp" min="0" max="5" step="1" value="2"></label>
+    <div class="sl-h" style="margin-top:8px"><span>CAUSTIC QUALITY</span><b id="vCaus">3</b></div>
+    <div class="btn-row" id="causBtns">
+      <button class="cbtn" data-c="1">1</button><button class="cbtn" data-c="2">2</button>
+      <button class="cbtn on" data-c="3">3</button><button class="cbtn" data-c="4">4</button>
+      <button class="cbtn" data-c="5">5</button>
+    </div>
+    <div class="sl-h" style="margin-top:8px"><span>CLOUD QUALITY</span><b id="vCloud">3</b></div>
+    <div class="btn-row" id="cloudBtns">
+      <button class="cbtn" data-l="0">OFF</button><button class="cbtn" data-l="1">1</button>
+      <button class="cbtn" data-l="2">2</button><button class="cbtn on" data-l="3">3</button>
+      <button class="cbtn" data-l="4">4</button>
+    </div>
+
+    <h4 id="secPar">◈ PARTICLES</h4>
+    <div class="sl-h"><span>PARTICLE COUNT</span><b id="vParts">50K</b></div>
+    <div class="btn-row" id="partBtns">
+      <button class="cbtn" data-p="10000">10K</button>
+      <button class="cbtn" data-p="25000">25K</button>
+      <button class="cbtn on" data-p="50000">50K</button>
+      <button class="cbtn" data-p="100000">100K</button>
+      <button class="cbtn" data-p="250000">250K</button>
+    </div>
+    <label class="sl"><div class="sl-h"><span>DENSITY TRIM</span><b id="vDens">2.5×</b></div>
+      <input type="range" id="sDens" min="0.5" max="3" step="0.1" value="2.5"></label>
+    <label class="sl"><div class="sl-h"><span>DROPLET GRAVITY</span><b id="vGrav">1.0×</b></div>
+      <input type="range" id="sGrav" min="0.2" max="3" step="0.1" value="1"></label>
+    <label class="sl"><div class="sl-h"><span>DROPLET SIZE</span><b id="vSize">7px</b></div>
+      <input type="range" id="sSize" min="3" max="14" step="1" value="7"></label>
+    <label class="sl"><div class="sl-h"><span>WIND OVERRIDE</span><b id="vWind">AUTO</b></div>
+      <input type="range" id="sWind" min="-1" max="80" step="1" value="-1"></label>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="cbtn" id="bBurst">💧 SPAWN BURST</button>
+      <button class="cbtn" id="bClearD">✕ CLEAR</button>
+      <button class="cbtn" id="bSound">🔇 SOUND OFF</button>
+    </div>
+    <div class="ro-grid" style="margin-top:8px">
+      <div class="ro"><span>ACTIVE</span><b id="pCount">—</b></div>
+      <div class="ro"><span>COMPOSITION</span><b id="pComp">—</b></div>
+    </div>
+
+    <h4 id="secPhy">◈ PHYSICS</h4>
+    <div class="sl-h"><span>BODIES</span><b id="vBodies">256</b></div>
+    <div class="btn-row" id="bodyBtns">
+      <button class="cbtn" data-b="32">32</button><button class="cbtn" data-b="64">64</button>
+      <button class="cbtn" data-b="128">128</button><button class="cbtn on" data-b="256">256</button>
+      <button class="cbtn" data-b="512">512</button><button class="cbtn" data-b="1024">1024</button>
+    </div>
+    <div class="sl-h" style="margin-top:8px"><span>COLLISION MODE</span><b id="vColl">GRID</b></div>
+    <div class="btn-row" id="collBtns">
+      <button class="cbtn on" data-m="grid">GRID (SPATIAL HASH)</button>
+      <button class="cbtn" data-m="brute">BRUTE FORCE O(n²) 🔥</button>
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="cbtn on" id="btnWorker">WORKER THREAD: ON</button>
+    </div>
+    <label class="sl"><div class="sl-h"><span>RESTITUTION</span><b id="vElas">1.00</b></div>
+      <input type="range" id="sElas" min="0.3" max="1" step="0.01" value="1"></label>
+    <label class="sl"><div class="sl-h"><span>AIR FRICTION</span><b id="vFric">0.40%</b></div>
+      <input type="range" id="sFric" min="0" max="5" step="0.1" value="0.4"></label>
+    <label class="sl"><div class="sl-h"><span>ARENA WIND</span><b id="vAWind">0</b></div>
+      <input type="range" id="sAWind" min="-60" max="60" step="1" value="0"></label>
+    <div class="ro-grid" style="margin-top:8px">
+      <div class="ro"><span>CHECKS/F</span><b id="pChecks">—</b></div>
+      <div class="ro"><span>COLLISIONS/F</span><b id="pHits">—</b></div>
+      <div class="ro"><span>STEP TIME</span><b id="pMs">—</b></div>
+      <div class="ro"><span>ΣKE</span><b id="pKe">—</b></div>
+    </div>
+
+    <h4 id="secPost">◈ POST PROCESSING</h4>
+    <label class="sl"><div class="sl-h"><span>BLUR / BLOOM PASSES</span><b id="vPasses">3</b></div>
+      <input type="range" id="sPasses" min="0" max="8" step="1" value="3"></label>
+    <label class="sl"><div class="sl-h"><span>BLOOM INTENSITY</span><b id="vBloom">0.90</b></div>
+      <input type="range" id="sBloom" min="0" max="2" step="0.05" value="0.9"></label>
+    <label class="sl"><div class="sl-h"><span>BLOOM THRESHOLD</span><b id="vThr">0.72</b></div>
+      <input type="range" id="sThr" min="0.4" max="1" step="0.01" value="0.72"></label>
+    <label class="sl"><div class="sl-h"><span>CHROMATIC ABERRATION</span><b id="vCA">0.60</b></div>
+      <input type="range" id="sCA" min="0" max="3" step="0.05" value="0.6"></label>
+    <label class="sl"><div class="sl-h"><span>VIGNETTE</span><b id="vVin">0.35</b></div>
+      <input type="range" id="sVin" min="0" max="1" step="0.05" value="0.35"></label>
+    <label class="sl"><div class="sl-h"><span>FILM GRAIN</span><b id="vGrain">0.06</b></div>
+      <input type="range" id="sGrain" min="0" max="0.3" step="0.01" value="0.06"></label>
+
+    <h4 id="secBen">◈ BENCHMARK</h4>
+    <div class="btn-row">
+      <button class="cbtn hot" id="btnBench">▶ RUN 30s BENCHMARK</button>
+    </div>
+    <div class="sl-h" style="margin-top:8px"><span>AUTO STRESS · TARGET FPS</span><b id="vTarget">60</b></div>
+    <div class="btn-row" id="targetBtns">
+      <button class="cbtn" data-t="30">30</button><button class="cbtn" data-t="45">45</button>
+      <button class="cbtn on" data-t="60">60</button><button class="cbtn" data-t="90">90</button>
+      <button class="cbtn" data-t="120">120</button>
+    </div>
+    <div class="btn-row" style="margin-top:6px">
+      <button class="cbtn" id="btnAuto">AUTO STRESS: OFF</button>
+      <b id="autoStat" style="font-size:9px;color:#7fe0a8;align-self:center">IDLE</b>
+    </div>
+    <div class="ro-note">▸ GPU UTILIZATION CANNOT BE READ FROM BROWSERS — LOAD FIGURES ARE ESTIMATES.</div>
+
+    <h4 id="secWx">◈ WEATHER OVERRIDE</h4>
+    <div class="btn-row" id="wxBtns">
+      <button class="cbtn on" data-wx="auto">AUTO</button>
+      <button class="cbtn" data-wx="clear">CLEAR</button>
+      <button class="cbtn" data-wx="rain">RAIN</button>
+      <button class="cbtn" data-wx="snow">SNOW</button>
+      <button class="cbtn" data-wx="fog">FOG</button>
+      <button class="cbtn" data-wx="thunder">THUNDER</button>
+    </div>
+    <div class="ro-grid" style="margin-top:8px">
+      <div class="ro"><span>STATE</span><b id="wState">—</b></div>
+      <div class="ro"><span>TEMP</span><b id="wTemp">—</b></div>
+      <div class="ro"><span>WIND</span><b id="wWind">—</b></div>
+      <div class="ro"><span>DIR</span><b id="wDir">—</b></div>
+    </div>
+    <div class="btn-row" style="margin-top:6px"><button class="cbtn" id="btnWxRefresh">⟳ REFRESH FEED</button></div>
+
+    <h4 id="secAst">◈ ASTRONOMY · THEME OVERRIDE</h4>
+    <div class="btn-row" id="thBtns">
+      <button class="cbtn on" data-th="auto">AUTO</button>
+      <button class="cbtn" data-th="dawn">DAWN</button>
+      <button class="cbtn" data-th="morning">MORNING</button>
+      <button class="cbtn" data-th="noon">NOON</button>
+      <button class="cbtn" data-th="afternoon">AFTERNOON</button>
+      <button class="cbtn" data-th="dusk">DUSK</button>
+      <button class="cbtn" data-th="night">NIGHT</button>
+    </div>
+    <div class="ro-grid" style="margin-top:8px">
+      <div class="ro"><span>SUN ALT</span><b id="aAlt">—</b></div>
+      <div class="ro"><span>SUN AZ</span><b id="aAz">—</b></div>
+      <div class="ro"><span>PHASE</span><b id="aPhase">—</b></div>
+      <div class="ro"><span>MOON ALT·ILLUM</span><b id="aMoon">—</b></div>
+      <div class="ro"><span>JULIAN DATE</span><b id="aJD">—</b></div>
+      <div class="ro"><span>SUNRISE</span><b id="aRise">—</b></div>
+      <div class="ro"><span>SUNSET</span><b id="aSet">—</b></div>
+      <div class="ro"><span>SOLAR SOLVES</span><b id="aSolves">0</b></div>
+    </div>
+    <div class="ro-note">💧 CLICK ANYWHERE ON THE GLASS — DROPLETS REFRACT THE ACTUAL SUN</div>
+  </div>
+</div>
+
+<noscript><div style="position:fixed;inset:0;z-index:99;background:#04121f;color:#cfe9ff;display:grid;place-items:center;font-family:monospace">The Atmospheric Engine requires JavaScript — the sky cannot be computed without it.</div></noscript>
 <script src="engine.js"></script>
 </body>
 </html>
