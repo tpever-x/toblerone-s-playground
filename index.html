@@ -3,16 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Yetkin Köseoğlu — Atmospheric CV Engine v3.0. A CV that is also a real-time WebGL2 GPU/CPU stress simulation: procedural scattering sky, live solar trigonometry, Open-Meteo weather, multi-pass post-processing, 250k GPU particles and an elastic physics containment zone. Zero dependencies.">
-<title>Yetkin Köseoğlu — Atmospheric CV Engine v3.0 // GPU EXTREME</title>
+<meta name="description" content="Yetkin Köseoğlu — Atmospheric CV Engine v3.0.3. A CV that is also a real-time WebGL2 GPU/CPU stress simulation: procedural scattering sky, live solar trigonometry, Open-Meteo weather, multi-pass post-processing, 250k GPU particles and an elastic physics containment zone. Zero dependencies.">
+<title>Yetkin Köseoğlu — Atmospheric CV Engine v3.0.3 // GPU EXTREME</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g' cx='35%25' cy='30%25'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='.5' stop-color='%237fd4ff'/%3E%3Cstop offset='1' stop-color='%230a68c0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='16' cy='16' r='14' fill='url(%23g)'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="booting">
 
 <!-- atmosphere stack -->
 <div id="bgGrad"></div>
 <canvas id="sky"></canvas>
+<canvas id="gpuMain"></canvas>
 <canvas id="gpuCanvas"></canvas>
 <div id="glow"></div>
 <canvas id="wx"></canvas>
@@ -37,15 +38,14 @@
   <header id="top">
     <div class="wrap hero-grid">
       <div>
-        <div class="hero-k"><span class="live"></span>ATMOSPHERIC CV ENGINE · BUILD 3.0.0 · GPU/CPU EXTREME</div>
+        <div class="hero-k"><span class="live"></span>ATMOSPHERIC CV ENGINE · BUILD 3.0.3 · GPU/CPU EXTREME</div>
         <h1>Yetkin <span class="thin">Köseoğlu</span></h1>
         <p class="hero-sub">Electrical &amp; Electronics Engineering undergrad at METU Northern Cyprus — I design FPGA datapaths in Verilog by day, and by night I made this page compute its own weather. The sky behind this text is being solved right now.</p>
         <div class="chips">
-          <span class="chip" id="chipSky">◌ COMPUTING SKY…</span>
+          <span class="chip" id="chipPhase">◐ —</span>
           <span class="chip" id="chipSun">☀ ALT —</span>
           <span class="chip" id="chipWx">🌡 —</span>
           <span class="chip" id="chipLoc">📍 İZMİR, TR</span>
-          <span class="chip" id="chipPhase">◐ —</span>
         </div>
         <div class="hero-cta">
           <a class="btn" href="#zone">⚠ ENTER THE CONTAINMENT ZONE</a>
@@ -68,7 +68,7 @@
       <div class="waterline rv"></div>
       <div class="about-grid">
         <div class="glass panel rv">
-          <p class="lead">No screenshot, no looped video. The sun position is solved from your OS clock and coordinates with spherical trigonometry; the gradient, the droplet caustics, the aurora and the rainbow all fall out of that one calculation. Precipitation comes from a live Open-Meteo feed. Since v3.0 the atmosphere is ray-marched on your GPU through a multi-pass WebGL2 pipeline — bloom, scattering, 250,000 weather particles and an N-body arena, all running while you read this sentence. I treat the browser the way I treat a circuit — every frame is a clock cycle, and nothing here is faked.</p>
+          <p class="lead">No screenshot, no looped video. The sun position is solved from your OS clock and coordinates with spherical trigonometry; the gradient, the droplet caustics, the aurora and the water reflections all fall out of that one calculation. Precipitation comes from a live Open-Meteo feed. Since v3.0 the atmosphere is ray-marched on your GPU through a multi-pass WebGL2 pipeline — bloom, scattering, 250,000 weather particles and an N-body arena, all running while you read this sentence. I treat the browser the way I treat a circuit — every frame is a clock cycle, and nothing here is faked.</p>
           <p class="lead" style="margin-top:14px">Third-year EEE undergraduate student, ranked 3rd of 43 in my cohort. Comfortable in Verilog, MATLAB and C; happiest somewhere between a Cyclone III FPGA and a Linux terminal. Based in İzmir, studying in Northern Cyprus, and currently targeting an M.Sc. in Advanced Semiconductor Nanotechnologies at Otto von Guericke University Magdeburg.</p>
           <div class="lang-row">
             <span class="chip">🇹🇷 TURKISH · NATIVE</span>
@@ -86,7 +86,7 @@
             <div class="stat"><b>2028</b>EXPECTED B.Sc</div>
           </div>
           <p class="lead" style="margin-top:18px;font-family:var(--font-m);font-size:11px;letter-spacing:1px">
-            ▸ v3.0 PIPELINE: SCENE → HDR → BLOOM → SEPARABLE BLUR ×N → CA/VIGNETTE/GRAIN<br>
+            ▸ v3.0.3 PIPELINE: SCENE → HDR → BLOOM → SEPARABLE BLUR ×N → CA/VIGNETTE/GRAIN<br>
             ▸ PRESS ` TO OPEN THE ENGINE CONSOLE AND RAISE THE LOAD
           </p>
         </div>
@@ -220,21 +220,15 @@
         <div class="hazard"></div>
         <div class="arena-bar">
           <span class="warn">⚠</span> ELASTIC ENVIRONMENT · e = <b id="eOut">1.00</b>
-          <span class="arena-stats">ΣKE <b id="keOut">0.00</b> MU · BODIES <b id="bodOut">0</b> · CHECKS <b id="chkOut">0</b> · HITS <b id="hitOut">0</b> · PHYS <b id="phyOut">0.00</b>ms</span>
+          <span class="arena-stats">ΣKE <b id="keOut">0.00</b> MU · BODIES <b id="bodyOut">72</b> · HITS <b id="hitOut">0</b></span>
           <span class="arena-actions">
             <button class="abtn on" id="btnZero">ZERO-G: ON</button>
-            <select class="asel" id="selBodiesA" title="Body count">
-              <option value="32">32</option><option value="64">64</option><option value="128">128</option>
-              <option value="256" selected>256</option><option value="512">512</option><option value="1024">1024</option>
-            </select>
             <button class="abtn" id="btnAdd">+ SPECIMEN</button>
             <button class="abtn" id="btnShake">SHAKE ⚡</button>
             <button class="abtn" id="btnChaos">CHAOS ×2.5 👾</button>
           </span>
         </div>
-        <div class="arena-stage" id="stage">
-          <canvas id="arenaCv"></canvas>
-        </div>
+        <div class="arena-stage" id="stage"></div>
         <div class="arena-note">▸ DRAG A SPECIMEN TO FLING IT · WALL HITS SQUASH ON IMPACT · BODIES COLLIDE ELASTICALLY · COLLISION MODE / WORKER THREAD IN THE DEV CONSOLE ( ` )</div>
       </div>
     </div>
@@ -261,7 +255,7 @@
   </section>
 
   <footer>
-    AERO ENGINE v3.0 · GPU/CPU EXTREME BUILD · ZERO DEPENDENCIES · SUN SOLVED <span id="sunCount2">0</span> TIMES THIS SESSION<br>
+    AERO ENGINE v3.0.3 · GPU/CPU EXTREME BUILD · ZERO DEPENDENCIES · SUN SOLVED <span id="sunCount2">0</span> TIMES THIS SESSION<br>
     LIVE WEATHER BY OPEN-METEO · PRESS ` FOR THE DEV CONSOLE · WEBGL2 MULTI-PASS PIPELINE
   </footer>
 </main>
@@ -272,234 +266,286 @@
   <div class="hud-row"><span id="hudSun">☀ —</span><span>SOLAR <b id="hudSol">--:--</b></span></div>
   <div class="hud-row"><span id="hudWx">◌ SYNCING…</span><span id="hudSrc">--</span></div>
   <div class="hud-row"><span id="hudLoc">İZMİR, TR</span><b id="hudFps">-- FPS</b></div>
-  <div class="hud-row"><span id="hudGpu">GPU — · —×</span><span id="hudDate2">--</span></div>
-  <div class="hud-live"><i></i>SKY ENGINE · <span id="hudEng">CONNECTING</span></div>
+  <div class="hud-row"><span>DATE</span><span id="hudDate2">--</span></div>
+  <div class="hud-live"><i></i>SKY ENGINE · <span>ONLINE</span></div>
 </aside>
 
-<!-- benchmark HUD / report -->
-<div id="benchHud" class="bench-hud hidden">
-  BENCHMARK <b id="benchT">30</b>s · <span id="benchFps">--</span> FPS
-  <button id="btnBenchAbort">ABORT</button>
-</div>
-<div id="benchReport" class="bench-report hidden"></div>
+<!-- Stress HUD & Toast -->
+<aside id="stressHud">
+  <div class="sh-title">◈ STRESS METER</div>
+  <div class="sh-meter"><div id="shFill"></div></div>
+  <div class="sh-row"><span>GPU LOAD</span><b id="shGpu">75%</b></div>
+  <div class="sh-row"><span>SHADER</span><b id="shShader">HIGH</b></div>
+  <div class="sh-row"><span>PARTICLES</span><b id="shParts">50K</b></div>
+  <div class="sh-row"><span>BODIES</span><b id="shBodies">72</b></div>
+</aside>
+<div id="stressToast"></div>
 
 <!-- console launcher -->
 <button class="gear" id="gear" title="Dev console">⚙️</button>
 <div id="hint">💧 TIP · PRESS ` FOR THE DEV CONSOLE · CLICK THE GLASS TO CONDENSE DROPLETS</div>
 
-<!-- ============ DEV CONSOLE ============ -->
+<!-- ============ DEV CONSOLE (v3.0.3) ============ -->
 <div class="devcon hidden" id="devcon">
-  <div class="c-title" id="cTitle">⚙ AERO ENGINE · DEV CONSOLE v3.0 · GPU/CPU EXTREME
+  <div class="c-title" id="cTitle">⚙ AERO ENGINE · DEV CONSOLE v3.0.3
     <span class="sp"></span>
+    <button class="cbtn" id="cReset" title="Reset load to safe defaults">⟲</button>
     <button class="cbtn" id="cMin" title="Minimize">—</button>
     <button class="cbtn" id="cClose" title="Close">✕</button>
   </div>
   <div class="c-body" id="cBody">
-    <div class="c-nav">
-      <a href="#secTel">TELEMETRY</a><a href="#secGpu">GPU</a><a href="#secShd">SHADERS</a>
-      <a href="#secPar">PARTICLES</a><a href="#secPhy">PHYSICS</a><a href="#secPost">POST FX</a>
-      <a href="#secBen">BENCHMARK</a><a href="#secWx">WEATHER</a><a href="#secAst">ASTRONOMY</a>
+    <div class="c-tabs">
+      <button class="ctab on" data-t="tel">TELEMETRY</button>
+      <button class="ctab" data-t="gpu">GPU/SHD</button>
+      <button class="ctab" data-t="fx">POST FX</button>
+      <button class="ctab" data-t="parts">PARTICLES</button>
+      <button class="ctab" data-t="phys">PHYSICS</button>
+      <button class="ctab" data-t="bench">BENCH</button>
+      <button class="ctab" data-t="env">WX/ASTRO</button>
     </div>
 
-    <h4 id="secTel">◈ TELEMETRY</h4>
-    <canvas id="fpsGraph" width="320" height="46"></canvas>
-    <div class="ro-grid">
-      <div class="ro"><span>FPS</span><b id="tFps">—</b></div>
-      <div class="ro"><span>FRAME</span><b id="tMs">—</b></div>
-      <div class="ro"><span>CPU FRAME (EST)</span><b id="tCpu">—</b></div>
-      <div class="ro"><span>GPU TIME</span><b id="tGpuMs">—</b></div>
-      <div class="ro"><span>GPU LOAD (EST)</span><b id="tGflops">—</b></div>
-      <div class="ro"><span>PHYSICS</span><b id="tPhysMs">—</b></div>
-      <div class="ro"><span>PARTICLES</span><b id="tParts">—</b></div>
-      <div class="ro"><span>BODIES</span><b id="tBodies">—</b></div>
-      <div class="ro"><span>DRAW CALLS</span><b id="tDraw">—</b></div>
-      <div class="ro"><span>TRIS / PTS</span><b id="tTris">—</b></div>
-      <div class="ro"><span>INTERNAL RES</span><b id="tRes">—</b></div>
-      <div class="ro"><span>DPR</span><b id="tDpr">—</b></div>
-      <div class="ro"><span>WX STATE</span><b id="tWx">—</b></div>
-      <div class="ro"><span>WIND</span><b id="tWind">—</b></div>
-      <div class="ro"><span>COORDS</span><b id="tCoords">—</b></div>
-      <div class="ro"><span>GEO</span><b id="tGeo">—</b></div>
-      <div class="ro"><span>WX SOURCE</span><b id="tSrc">—</b></div>
+    <!-- TAB: TELEMETRY -->
+    <div class="c-sec on" data-t="tel">
+      <h4>◈ REAL-TIME TELEMETRY</h4>
+      <canvas id="fpsGraph" width="320" height="46"></canvas>
+      <div class="ro-grid" style="margin-top:8px">
+        <div class="ro"><span>FPS</span><b id="tFps">—</b></div>
+        <div class="ro"><span>FRAME</span><b id="tFrame">—</b></div>
+        <div class="ro"><span>CPU TIME</span><b id="tCpu">—</b></div>
+        <div class="ro"><span>PHYS TIME</span><b id="tPhys">—</b></div>
+        <div class="ro"><span>GPU LOAD</span><b id="tGpuEst">—</b></div>
+        <div class="ro"><span>BACKEND</span><b id="tApi">—</b></div>
+        <div class="ro"><span>INTERNAL RES</span><b id="tRes">—</b></div>
+        <div class="ro"><span>DPR</span><b id="tDpr">—</b></div>
+        <div class="ro"><span>DRAW CALLS</span><b id="tDraws">—</b></div>
+        <div class="ro"><span>TRIS / PTS</span><b id="tTris">—</b></div>
+        <div class="ro"><span>PARTICLES</span><b id="tParts">—</b></div>
+        <div class="ro"><span>BODIES</span><b id="tBodies">—</b></div>
+      </div>
+      <div class="c-note">▸ GPU UTILIZATION IS ESTIMATED FROM RESOLUTION, SHADER LOOPS AND POST-FX PASSES.</div>
     </div>
 
-    <h4 id="secGpu">◈ GPU</h4>
-    <div class="sl-h"><span>GPU LOAD (MASTER)</span><b id="vLoad">75%</b></div>
-    <div class="btn-row" id="loadBtns">
-      <button class="cbtn" data-load="25">25%</button>
-      <button class="cbtn" data-load="50">50%</button>
-      <button class="cbtn on" data-load="75">75%</button>
-      <button class="cbtn" data-load="100">100%</button>
-      <button class="cbtn" data-load="ext">EXTREME</button>
-    </div>
-    <label class="sl"><div class="sl-h"><span>RENDER SCALE</span><b id="vScale">1.5×</b></div>
-      <select id="selScale" class="asel full">
-        <option value="1">1.0×</option><option value="1.25">1.25×</option>
-        <option value="1.5" selected>1.5×</option><option value="2">2.0×</option>
-        <option value="2.5">2.5×</option><option value="3">3.0×</option>
-      </select>
-    </label>
-    <div class="ro-grid" style="margin-top:8px">
-      <div class="ro"><span>RENDERER</span><b id="gRenderer">—</b></div>
-      <div class="ro"><span>INTERNAL RES</span><b id="gRes">—</b></div>
-      <div class="ro"><span>GPU TIMER</span><b id="gTimer">—</b></div>
-      <div class="ro"><span>HDR</span><b id="gHdr">—</b></div>
-    </div>
-    <div class="btn-row" style="margin-top:8px">
-      <button class="cbtn warn" id="btnResetLoad">⟲ RESET LOAD</button>
+    <!-- TAB: GPU & SHADERS -->
+    <div class="c-sec" data-t="gpu">
+      <h4>◈ GPU MASTER &amp; SHADER TIER</h4>
+      <div class="sl-h"><span>GPU LOAD BUDGET</span><b id="vGpuLoad">75%</b></div>
+      <div class="btn-row" id="gpuLoadRow">
+        <button class="cbtn" data-v="25">25%</button>
+        <button class="cbtn" data-v="50">50%</button>
+        <button class="cbtn on" data-v="75">75%</button>
+        <button class="cbtn" data-v="100">100%</button>
+        <button class="cbtn" data-v="125">EXTREME</button>
+      </div>
+
+      <div class="sl-h" style="margin-top:8px"><span>RENDER SCALE</span><b id="vScale">1.00×</b></div>
+      <div class="btn-row" id="scaleRow">
+        <button class="cbtn on" data-v="1">1.0×</button>
+        <button class="cbtn" data-v="1.25">1.25×</button>
+        <button class="cbtn" data-v="1.5">1.5×</button>
+        <button class="cbtn" data-v="2">2.0×</button>
+        <button class="cbtn" data-v="2.5">2.5×</button>
+        <button class="cbtn" data-v="3">3.0×</button>
+      </div>
+
+      <div class="sl-h" style="margin-top:8px"><span>SHADER COMPLEXITY</span><b id="vShader">HIGH</b></div>
+      <div class="btn-row" id="shaderRow">
+        <button class="cbtn" data-v="LOW">LOW</button>
+        <button class="cbtn" data-v="MEDIUM">MEDIUM</button>
+        <button class="cbtn on" data-v="HIGH">HIGH</button>
+        <button class="cbtn" data-v="EXTREME">EXTREME</button>
+        <button class="cbtn" data-v="INSANE">INSANE</button>
+      </div>
+
+      <div class="sl-h" style="margin-top:8px"><span>WATER CAUSTICS</span><b id="vCaus">HIGH</b></div>
+      <div class="btn-row" id="causRow">
+        <button class="cbtn" data-v="OFF">OFF</button>
+        <button class="cbtn" data-v="LOW">LOW</button>
+        <button class="cbtn" data-v="MEDIUM">MEDIUM</button>
+        <button class="cbtn on" data-v="HIGH">HIGH</button>
+        <button class="cbtn" data-v="ULTRA">ULTRA</button>
+      </div>
+
+      <div class="sl-h" style="margin-top:8px"><span>CLOUD FBM QUALITY</span><b id="vCloud">HIGH</b></div>
+      <div class="btn-row" id="cloudRow">
+        <button class="cbtn" data-v="OFF">OFF</button>
+        <button class="cbtn" data-v="LOW">LOW</button>
+        <button class="cbtn" data-v="MEDIUM">MEDIUM</button>
+        <button class="cbtn on" data-v="HIGH">HIGH</button>
+        <button class="cbtn" data-v="ULTRA">ULTRA</button>
+      </div>
+
+      <div class="ro-grid" style="margin-top:8px">
+        <div class="ro"><span>EFF LOOPS</span><b id="rLoops">—</b></div>
+        <div class="ro"><span>FBM OCTAVES</span><b id="rOct">—</b></div>
+        <div class="ro"><span>DOMAIN WARP</span><b id="rWarp">—</b></div>
+        <div class="ro"><span>LEGACY OVERLAY</span><b id="rLegacy">—</b></div>
+      </div>
     </div>
 
-    <h4 id="secShd">◈ SHADERS</h4>
-    <div class="sl-h"><span>SHADER QUALITY</span><b id="vQual">HIGH</b></div>
-    <div class="btn-row" id="qualBtns">
-      <button class="cbtn" data-q="low">LOW</button>
-      <button class="cbtn" data-q="medium">MEDIUM</button>
-      <button class="cbtn on" data-q="high">HIGH</button>
-      <button class="cbtn" data-q="extreme">EXTREME</button>
-      <button class="cbtn" data-q="insane">INSANE</button>
-    </div>
-    <label class="sl"><div class="sl-h"><span>SHADER ITERATIONS (DETAIL)</span><b id="vIter">2</b></div>
-      <input type="range" id="sIter" min="0" max="8" step="1" value="2"></label>
-    <label class="sl"><div class="sl-h"><span>SCATTER SAMPLES</span><b id="vScatter">12</b></div>
-      <input type="range" id="sScatter" min="2" max="32" step="1" value="12"></label>
-    <label class="sl"><div class="sl-h"><span>DOMAIN WARP PASSES</span><b id="vWarp">2</b></div>
-      <input type="range" id="sWarp" min="0" max="5" step="1" value="2"></label>
-    <div class="sl-h" style="margin-top:8px"><span>CAUSTIC QUALITY</span><b id="vCaus">3</b></div>
-    <div class="btn-row" id="causBtns">
-      <button class="cbtn" data-c="1">1</button><button class="cbtn" data-c="2">2</button>
-      <button class="cbtn on" data-c="3">3</button><button class="cbtn" data-c="4">4</button>
-      <button class="cbtn" data-c="5">5</button>
-    </div>
-    <div class="sl-h" style="margin-top:8px"><span>CLOUD QUALITY</span><b id="vCloud">3</b></div>
-    <div class="btn-row" id="cloudBtns">
-      <button class="cbtn" data-l="0">OFF</button><button class="cbtn" data-l="1">1</button>
-      <button class="cbtn" data-l="2">2</button><button class="cbtn on" data-l="3">3</button>
-      <button class="cbtn" data-l="4">4</button>
+    <!-- TAB: POST FX -->
+    <div class="c-sec" data-t="fx">
+      <h4>◈ POST-PROCESSING CHAIN</h4>
+      <label class="sl"><div class="sl-h"><span>SEPARABLE BLUR / BLOOM PASSES</span><b id="vFx">2</b></div>
+        <input type="range" id="sFx" min="0" max="8" step="1" value="2">
+      </label>
+
+      <div class="sl-h" style="margin-top:8px"><span>COMPOSITE GRADE MODE</span></div>
+      <div class="btn-row" id="fxModeRow">
+        <button class="cbtn on" data-v="hdr">HDR BLOOM</button>
+        <button class="cbtn" data-v="ca">CHROMATIC</button>
+        <button class="cbtn" data-v="film">FILM GRADE</button>
+      </div>
+
+      <div class="ro-grid" style="margin-top:8px">
+        <div class="ro"><span>PIPELINE</span><b id="rPipe">—</b></div>
+        <div class="ro"><span>FBO TARGETS</span><b id="rFbo">—</b></div>
+        <div class="ro"><span>BLUR DRAWS</span><b id="rBlur">—</b></div>
+        <div class="ro"><span>FX COST</span><b id="rFxMs">—</b></div>
+      </div>
     </div>
 
-    <h4 id="secPar">◈ PARTICLES</h4>
-    <div class="sl-h"><span>PARTICLE COUNT</span><b id="vParts">50K</b></div>
-    <div class="btn-row" id="partBtns">
-      <button class="cbtn" data-p="10000">10K</button>
-      <button class="cbtn" data-p="25000">25K</button>
-      <button class="cbtn on" data-p="50000">50K</button>
-      <button class="cbtn" data-p="100000">100K</button>
-      <button class="cbtn" data-p="250000">250K</button>
-    </div>
-    <label class="sl"><div class="sl-h"><span>DENSITY TRIM</span><b id="vDens">2.5×</b></div>
-      <input type="range" id="sDens" min="0.5" max="3" step="0.1" value="2.5"></label>
-    <label class="sl"><div class="sl-h"><span>DROPLET GRAVITY</span><b id="vGrav">1.0×</b></div>
-      <input type="range" id="sGrav" min="0.2" max="3" step="0.1" value="1"></label>
-    <label class="sl"><div class="sl-h"><span>DROPLET SIZE</span><b id="vSize">7px</b></div>
-      <input type="range" id="sSize" min="3" max="14" step="1" value="7"></label>
-    <label class="sl"><div class="sl-h"><span>WIND OVERRIDE</span><b id="vWind">AUTO</b></div>
-      <input type="range" id="sWind" min="-1" max="80" step="1" value="-1"></label>
-    <div class="btn-row" style="margin-top:8px">
-      <button class="cbtn" id="bBurst">💧 SPAWN BURST</button>
-      <button class="cbtn" id="bClearD">✕ CLEAR</button>
-      <button class="cbtn" id="bSound">🔇 SOUND OFF</button>
-    </div>
-    <div class="ro-grid" style="margin-top:8px">
-      <div class="ro"><span>ACTIVE</span><b id="pCount">—</b></div>
-      <div class="ro"><span>COMPOSITION</span><b id="pComp">—</b></div>
+    <!-- TAB: PARTICLES -->
+    <div class="c-sec" data-t="parts">
+      <h4>◈ GPU &amp; CPU PARTICLES</h4>
+      <div class="sl-h"><span>GPU PARTICLE COUNT</span><b id="vParts">50K</b></div>
+      <div class="btn-row" id="partRow">
+        <button class="cbtn" data-v="10000">10K</button>
+        <button class="cbtn on" data-v="50000">50K</button>
+        <button class="cbtn" data-v="100000">100K</button>
+        <button class="cbtn" data-v="250000">250K</button>
+      </div>
+
+      <label class="sl"><div class="sl-h"><span>CPU WEATHER DENSITY</span><b id="vDens">2.5×</b></div>
+        <input type="range" id="sDens" min="0.5" max="3" step="0.1" value="2.5"></label>
+      <label class="sl"><div class="sl-h"><span>DROPLET GRAVITY</span><b id="vGrav">1.0×</b></div>
+        <input type="range" id="sGrav" min="0.2" max="3" step="0.1" value="1"></label>
+      <label class="sl"><div class="sl-h"><span>DROPLET SIZE</span><b id="vSize">7px</b></div>
+        <input type="range" id="sSize" min="3" max="14" step="1" value="7"></label>
+      <label class="sl"><div class="sl-h"><span>WIND OVERRIDE</span><b id="vWind">AUTO</b></div>
+        <input type="range" id="sWind" min="-1" max="80" step="1" value="-1"></label>
+
+      <div class="btn-row" style="margin-top:8px">
+        <button class="cbtn" id="bBurst">💧 SPAWN BURST</button>
+        <button class="cbtn" id="bClearD">✕ CLEAR</button>
+        <button class="cbtn" id="bSound">🔇 SOUND OFF</button>
+      </div>
+
+      <div class="ro-grid" style="margin-top:8px">
+        <div class="ro"><span>SIM MODE</span><b id="rSimMode">—</b></div>
+        <div class="ro"><span>GPU ACTIVE</span><b id="rPAct">—</b></div>
+        <div class="ro"><span>MIX WEIGHTS</span><b id="rPMix">—</b></div>
+        <div class="ro"><span>CPU MIST/WX</span><b id="rMist">—</b></div>
+      </div>
     </div>
 
-    <h4 id="secPhy">◈ PHYSICS</h4>
-    <div class="sl-h"><span>BODIES</span><b id="vBodies">256</b></div>
-    <div class="btn-row" id="bodyBtns">
-      <button class="cbtn" data-b="32">32</button><button class="cbtn" data-b="64">64</button>
-      <button class="cbtn" data-b="128">128</button><button class="cbtn on" data-b="256">256</button>
-      <button class="cbtn" data-b="512">512</button><button class="cbtn" data-b="1024">1024</button>
-    </div>
-    <div class="sl-h" style="margin-top:8px"><span>COLLISION MODE</span><b id="vColl">GRID</b></div>
-    <div class="btn-row" id="collBtns">
-      <button class="cbtn on" data-m="grid">GRID (SPATIAL HASH)</button>
-      <button class="cbtn" data-m="brute">BRUTE FORCE O(n²) 🔥</button>
-    </div>
-    <div class="btn-row" style="margin-top:8px">
-      <button class="cbtn on" id="btnWorker">WORKER THREAD: ON</button>
-    </div>
-    <label class="sl"><div class="sl-h"><span>RESTITUTION</span><b id="vElas">1.00</b></div>
-      <input type="range" id="sElas" min="0.3" max="1" step="0.01" value="1"></label>
-    <label class="sl"><div class="sl-h"><span>AIR FRICTION</span><b id="vFric">0.40%</b></div>
-      <input type="range" id="sFric" min="0" max="5" step="0.1" value="0.4"></label>
-    <label class="sl"><div class="sl-h"><span>ARENA WIND</span><b id="vAWind">0</b></div>
-      <input type="range" id="sAWind" min="-60" max="60" step="1" value="0"></label>
-    <div class="ro-grid" style="margin-top:8px">
-      <div class="ro"><span>CHECKS/F</span><b id="pChecks">—</b></div>
-      <div class="ro"><span>COLLISIONS/F</span><b id="pHits">—</b></div>
-      <div class="ro"><span>STEP TIME</span><b id="pMs">—</b></div>
-      <div class="ro"><span>ΣKE</span><b id="pKe">—</b></div>
+    <!-- TAB: PHYSICS -->
+    <div class="c-sec" data-t="phys">
+      <h4>◈ N-BODY CONTAINMENT ARENA</h4>
+      <div class="sl-h"><span>SPECIMEN COUNT</span><b id="vBodies">72</b></div>
+      <div class="btn-row" id="bodyRow">
+        <button class="cbtn" data-v="32">32</button>
+        <button class="cbtn" data-v="64">64</button>
+        <button class="cbtn" data-v="128">128</button>
+        <button class="cbtn" data-v="256">256</button>
+        <button class="cbtn" data-v="512">512</button>
+        <button class="cbtn" data-v="1024">1024</button>
+      </div>
+
+      <label class="sl"><div class="sl-h"><span>RESTITUTION (ELASTICITY)</span><b id="vElas">1.00</b></div>
+        <input type="range" id="sElas" min="0.3" max="1" step="0.01" value="1"></label>
+
+      <div class="sl-h" style="margin-top:8px"><span>BROADPHASE SOLVER</span></div>
+      <div class="btn-row" id="solverRow">
+        <button class="cbtn on" data-v="AUTO">AUTO (≤256 HASH)</button>
+        <button class="cbtn" data-v="HASH">SPATIAL HASH</button>
+        <button class="cbtn" data-v="BRUTE">BRUTE O(n²) 🔥</button>
+      </div>
+
+      <div class="sl-h" style="margin-top:8px"><span>EXECUTION THREAD</span></div>
+      <div class="btn-row" id="threadRow">
+        <button class="cbtn on" data-v="worker">WEB WORKER</button>
+        <button class="cbtn" data-v="main">MAIN THREAD</button>
+      </div>
+
+      <div class="ro-grid" style="margin-top:8px">
+        <div class="ro"><span>CHECKS/F</span><b id="rChecks">—</b></div>
+        <div class="ro"><span>COLLISIONS/F</span><b id="rCols">—</b></div>
+        <div class="ro"><span>STEP TIME</span><b id="rPhysMs">—</b></div>
+        <div class="ro"><span>ΣKE</span><b id="rKe">—</b></div>
+      </div>
     </div>
 
-    <h4 id="secPost">◈ POST PROCESSING</h4>
-    <label class="sl"><div class="sl-h"><span>BLUR / BLOOM PASSES</span><b id="vPasses">3</b></div>
-      <input type="range" id="sPasses" min="0" max="8" step="1" value="3"></label>
-    <label class="sl"><div class="sl-h"><span>BLOOM INTENSITY</span><b id="vBloom">0.90</b></div>
-      <input type="range" id="sBloom" min="0" max="2" step="0.05" value="0.9"></label>
-    <label class="sl"><div class="sl-h"><span>BLOOM THRESHOLD</span><b id="vThr">0.72</b></div>
-      <input type="range" id="sThr" min="0.4" max="1" step="0.01" value="0.72"></label>
-    <label class="sl"><div class="sl-h"><span>CHROMATIC ABERRATION</span><b id="vCA">0.60</b></div>
-      <input type="range" id="sCA" min="0" max="3" step="0.05" value="0.6"></label>
-    <label class="sl"><div class="sl-h"><span>VIGNETTE</span><b id="vVin">0.35</b></div>
-      <input type="range" id="sVin" min="0" max="1" step="0.05" value="0.35"></label>
-    <label class="sl"><div class="sl-h"><span>FILM GRAIN</span><b id="vGrain">0.06</b></div>
-      <input type="range" id="sGrain" min="0" max="0.3" step="0.01" value="0.06"></label>
+    <!-- TAB: BENCHMARK -->
+    <div class="c-sec" data-t="bench">
+      <h4>◈ STRESS BENCHMARK &amp; AUTO-ESCALATOR</h4>
+      <div class="sl-h"><span>BENCHMARK PRESET</span><b id="vBenchLoad">EXTREME</b></div>
+      <div class="btn-row" id="benchLoadRow">
+        <button class="cbtn" data-v="HIGH">HIGH</button>
+        <button class="cbtn on" data-v="EXTREME">EXTREME</button>
+      </div>
+      <div class="btn-row" style="margin-top:6px">
+        <button class="cbtn on" id="bBench">▶ RUN 30s BENCHMARK</button>
+      </div>
 
-    <h4 id="secBen">◈ BENCHMARK</h4>
-    <div class="btn-row">
-      <button class="cbtn hot" id="btnBench">▶ RUN 30s BENCHMARK</button>
-    </div>
-    <div class="sl-h" style="margin-top:8px"><span>AUTO STRESS · TARGET FPS</span><b id="vTarget">60</b></div>
-    <div class="btn-row" id="targetBtns">
-      <button class="cbtn" data-t="30">30</button><button class="cbtn" data-t="45">45</button>
-      <button class="cbtn on" data-t="60">60</button><button class="cbtn" data-t="90">90</button>
-      <button class="cbtn" data-t="120">120</button>
-    </div>
-    <div class="btn-row" style="margin-top:6px">
-      <button class="cbtn" id="btnAuto">AUTO STRESS: OFF</button>
-      <b id="autoStat" style="font-size:9px;color:#7fe0a8;align-self:center">IDLE</b>
-    </div>
-    <div class="ro-note">▸ GPU UTILIZATION CANNOT BE READ FROM BROWSERS — LOAD FIGURES ARE ESTIMATES.</div>
+      <div class="sl-h" style="margin-top:10px"><span>AUTO STRESS TARGET FPS</span></div>
+      <div class="btn-row" id="targetRow">
+        <button class="cbtn" data-v="30">30</button>
+        <button class="cbtn" data-v="45">45</button>
+        <button class="cbtn on" data-v="60">60</button>
+        <button class="cbtn" data-v="90">90</button>
+        <button class="cbtn" data-v="120">120</button>
+      </div>
+      <div class="btn-row" style="margin-top:6px">
+        <button class="cbtn" id="bAuto">◉ AUTO STRESS: OFF</button>
+      </div>
 
-    <h4 id="secWx">◈ WEATHER OVERRIDE</h4>
-    <div class="btn-row" id="wxBtns">
-      <button class="cbtn on" data-wx="auto">AUTO</button>
-      <button class="cbtn" data-wx="clear">CLEAR</button>
-      <button class="cbtn" data-wx="rain">RAIN</button>
-      <button class="cbtn" data-wx="snow">SNOW</button>
-      <button class="cbtn" data-wx="fog">FOG</button>
-      <button class="cbtn" data-wx="thunder">THUNDER</button>
+      <div class="ro-grid" style="margin-top:8px">
+        <div class="ro"><span>STATUS</span><b id="rBench">IDLE</b></div>
+        <div class="ro"><span>ELAPSED</span><b id="rBt">—</b></div>
+        <div class="ro"><span>AVG FPS</span><b id="rBAvg">—</b></div>
+        <div class="ro"><span>MIN FPS</span><b id="rBMin">—</b></div>
+        <div class="ro"><span>1% LOW FPS</span><b id="rB1">—</b></div>
+        <div class="ro"><span>MAX FRAME</span><b id="rBMax">—</b></div>
+      </div>
     </div>
-    <div class="ro-grid" style="margin-top:8px">
-      <div class="ro"><span>STATE</span><b id="wState">—</b></div>
-      <div class="ro"><span>TEMP</span><b id="wTemp">—</b></div>
-      <div class="ro"><span>WIND</span><b id="wWind">—</b></div>
-      <div class="ro"><span>DIR</span><b id="wDir">—</b></div>
-    </div>
-    <div class="btn-row" style="margin-top:6px"><button class="cbtn" id="btnWxRefresh">⟳ REFRESH FEED</button></div>
 
-    <h4 id="secAst">◈ ASTRONOMY · THEME OVERRIDE</h4>
-    <div class="btn-row" id="thBtns">
-      <button class="cbtn on" data-th="auto">AUTO</button>
-      <button class="cbtn" data-th="dawn">DAWN</button>
-      <button class="cbtn" data-th="morning">MORNING</button>
-      <button class="cbtn" data-th="noon">NOON</button>
-      <button class="cbtn" data-th="afternoon">AFTERNOON</button>
-      <button class="cbtn" data-th="dusk">DUSK</button>
-      <button class="cbtn" data-th="night">NIGHT</button>
+    <!-- TAB: WEATHER & ASTRONOMY -->
+    <div class="c-sec" data-t="env">
+      <h4>◈ WEATHER OVERRIDE</h4>
+      <div class="btn-row" id="wxBtns">
+        <button class="cbtn on" data-wx="auto">AUTO</button>
+        <button class="cbtn" data-wx="clear">CLEAR</button>
+        <button class="cbtn" data-wx="rain">RAIN</button>
+        <button class="cbtn" data-wx="snow">SNOW</button>
+        <button class="cbtn" data-wx="fog">FOG</button>
+        <button class="cbtn" data-wx="thunder">THUNDER</button>
+      </div>
+
+      <h4>◈ SOLAR PHASE OVERRIDE</h4>
+      <div class="btn-row" id="thBtns">
+        <button class="cbtn on" data-th="auto">AUTO</button>
+        <button class="cbtn" data-th="dawn">DAWN</button>
+        <button class="cbtn" data-th="morning">MORNING</button>
+        <button class="cbtn" data-th="noon">NOON</button>
+        <button class="cbtn" data-th="afternoon">AFTERNOON</button>
+        <button class="cbtn" data-th="dusk">DUSK</button>
+        <button class="cbtn" data-th="night">NIGHT</button>
+      </div>
+
+      <div class="ro-grid" style="margin-top:8px">
+        <div class="ro"><span>SUN ALT</span><b id="tAlt">—</b></div>
+        <div class="ro"><span>SUN AZ</span><b id="tAz">—</b></div>
+        <div class="ro"><span>PHASE</span><b id="tPhase">—</b></div>
+        <div class="ro"><span>JULIAN DATE</span><b id="tJD">—</b></div>
+        <div class="ro"><span>MOON ALT·ILLUM</span><b id="tMoon">—</b></div>
+        <div class="ro"><span>COORDS</span><b id="tCoords">—</b></div>
+        <div class="ro"><span>GEO STATE</span><b id="tGeo">—</b></div>
+        <div class="ro"><span>WX SOURCE</span><b id="tSrc">—</b></div>
+        <div class="ro"><span>WX STATE</span><b id="tWx">—</b></div>
+        <div class="ro"><span>WIND</span><b id="tWind">—</b></div>
+      </div>
+      <div class="c-note">💧 CLICK ANYWHERE ON THE GLASS — DROPLETS REFRACT THE ACTUAL SUN</div>
     </div>
-    <div class="ro-grid" style="margin-top:8px">
-      <div class="ro"><span>SUN ALT</span><b id="aAlt">—</b></div>
-      <div class="ro"><span>SUN AZ</span><b id="aAz">—</b></div>
-      <div class="ro"><span>PHASE</span><b id="aPhase">—</b></div>
-      <div class="ro"><span>MOON ALT·ILLUM</span><b id="aMoon">—</b></div>
-      <div class="ro"><span>JULIAN DATE</span><b id="aJD">—</b></div>
-      <div class="ro"><span>SUNRISE</span><b id="aRise">—</b></div>
-      <div class="ro"><span>SUNSET</span><b id="aSet">—</b></div>
-      <div class="ro"><span>SOLAR SOLVES</span><b id="aSolves">0</b></div>
-    </div>
-    <div class="ro-note">💧 CLICK ANYWHERE ON THE GLASS — DROPLETS REFRACT THE ACTUAL SUN</div>
   </div>
 </div>
 
