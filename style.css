@@ -1,4 +1,4 @@
-/* ============ AERO ENGINE v3.0 — GPU/CPU EXTREME BUILD ============ */
+/* ============ AERO ENGINE v3.0.3 — GPU/CPU EXTREME BUILD ============ */
 *, ::before, ::after{margin:0;padding:0;box-sizing:border-box}
 :root{
   --sky-top:#1f78e0; --sky-mid:#6db9f2; --sky-bot:#bfe3ff; --glow:#ffffff;
@@ -81,7 +81,7 @@ h2{font-size:clamp(1.9rem,4vw,2.7rem);margin:14px 0 6px}
 .lead{color:var(--ink-soft);max-width:640px;font-size:1.02rem}
 
 /* ---- hero ---- */
-#heroSec{min-height:96vh;display:flex;align-items:center;padding-top:110px;padding-bottom:40px}
+#top, #heroSec{position:relative;min-height:96vh;display:flex;align-items:center;padding-top:110px;padding-bottom:40px}
 .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;width:100%}
 .hero-k{font-family:var(--font-m);font-size:11px;letter-spacing:3px;color:var(--ink-soft)}
 .hero-k .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2ee06e;box-shadow:0 0 10px #2ee06e;margin-right:8px;animation:pulse 1.7s infinite}
@@ -347,6 +347,15 @@ body.booting .rv{opacity:1;transform:none;transition:none}
   .dot{left:6px;width:24px;height:24px;top:6px}
   .tubes{justify-content:center;gap:20px}
   .arena-stage{height:350px}
+}
+
+/* ---- print stylesheet ---- */
+@media print{
+  #bgGrad,#sky,#gpuMain,#gpuCanvas,#glow,#wx,#glassCv,#fogBlur,#flash,#vignette,
+  .dock,.hud,#stressHud,#stressToast,.gear,#hint,.devcon,#zone,.cue{display:none !important}
+  body{color:#000;background:#fff}
+  .rv{opacity:1 !important;transform:none !important}
+  .glass{box-shadow:none;border:1px solid #ccc;background:#fff}
 }
 
 /* ---- reduced motion ---- */
